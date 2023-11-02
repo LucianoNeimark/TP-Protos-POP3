@@ -1,0 +1,414 @@
+From 575c1aa3d691839282e1ab65ebe0e3ae7883590e Mon Sep 17 00:00:00 2001
+From: "Juan F. Codagnone" <juan@leak.com.ar>
+Date: Thu, 15 Mar 2018 13:00:06 -0300
+Subject: [PATCH 1/2] hello.c -- parser del mensaje hello de SOCKS5
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Muestra como deserializar el hello request y serializar el hello response
+del protocolo SOCKSv5. Muestra (para un caso muy sencillo) como se
+podría utilizar funciones callbacks para mantenerse agnostico de una
+estructura.
+
+El parsing es agnostico del mecanismo de lectura/escritura, y puede
+hacerse de byte en byte.
+---
+ src/hello.c      | 121 +++++++++++++++++++++++++++++++++++++++
+ src/hello.h      | 105 ++++++++++++++++++++++++++++++++++
+ src/hello_test.c | 143 +++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 369 insertions(+)
+ create mode 100644 src/hello.c
+ create mode 100644 src/hello.h
+ create mode 100644 src/hello_test.c
+
+diff --git a/src/hello.c b/src/hello.c
+new file mode 100644
+index 0000000..37c0527
+--- /dev/null
++++ b/src/hello.c
+@@ -0,0 +1,121 @@
++/**
++ * request.c -- parser del hello de SOCKS5
++ */
++#include <stdio.h>
++#include <stdlib.h>
++
++#include "hello.h"
++
++extern void 
++hello_parser_init(struct hello_parser *p) {
++    p->state     = hello_version;
++    p->remaining = 0;
++}
++
++extern enum hello_state
++hello_parser_feed(struct hello_parser *p, const uint8_t b) {
++    switch(p->state) {
++        case hello_version:
++            if(0x05 == b) {
++                p->state = hello_nmethods;
++            } else {
++                p->state = hello_error_unsupported_version;
++            }
++            break;
++
++        case hello_nmethods:
++            p->remaining = b;
++            p->state     = hello_methods;
++
++            if(p->remaining <= 0) {
++                p->state = hello_done;
++            }
++
++            break;
++
++        case hello_methods:
++            if(NULL != p->on_authentication_method) {
++                p->on_authentication_method(p, b);
++            }
++            p->remaining--;
++            if(p->remaining <= 0) {
++                p->state = hello_done;
++            }
++            break;
++        case hello_done:
++        case hello_error_unsupported_version:
++            // nada que hacer, nos quedamos en este estado
++            break;
++        default:
++            fprintf(stderr, "unknown state %d\n", p->state);
++            abort();
++    }
++
++    return p->state;
++}
++
++extern bool 
++hello_is_done(const enum hello_state state, bool *errored) {
++    bool ret;
++    switch (state) {
++        case hello_error_unsupported_version:
++            if (0 != errored) {
++                *errored = true;
++            }
++            /* no break */
++        case hello_done:
++            ret = true;
++            break;
++        default:
++            ret = false;
++            break;
++    }
++   return ret;
++}
++
++extern const char *
++hello_error(const struct hello_parser *p) {
++    char *ret;
++    switch (p->state) {
++        case hello_error_unsupported_version:
++            ret = "unsupported version";
++            break;
++        default:
++            ret = "";
++            break;
++    }
++    return ret;
++}
++
++extern void 
++hello_parser_close(struct hello_parser *p) {
++    /* no hay nada que liberar */
++}
++
++extern enum hello_state
++hello_consume(buffer *b, struct hello_parser *p, bool *errored) {
++    enum hello_state st = p->state;
++
++    while(buffer_can_read(b)) {
++        const uint8_t c = buffer_read(b);
++        st = hello_parser_feed(p, c);
++        if (hello_is_done(st, errored)) {
++            break;
++        }
++    }
++    return st;
++}
++
++extern int
++hello_marshall(buffer *b, const uint8_t method) {
++    size_t n;
++    uint8_t *buff = buffer_write_ptr(b, &n);
++    if(n < 2) {
++        return -1;
++    }
++    buff[0] = 0x05;
++    buff[1] = method;
++    buffer_write_adv(b, 2);
++    return 2;
++}
++
+diff --git a/src/hello.h b/src/hello.h
+new file mode 100644
+index 0000000..8141339
+--- /dev/null
++++ b/src/hello.h
+@@ -0,0 +1,105 @@
++#ifndef HELLO_H_Ds3wbvgeUHWkGm7B7QLXvXKoxlA
++#define HELLO_H_Ds3wbvgeUHWkGm7B7QLXvXKoxlA
++
++#include <stdint.h>
++#include <stdbool.h>
++
++#include "buffer.h"
++
++static const uint8_t METHOD_NO_AUTHENTICATION_REQUIRED = 0x00;
++static const uint8_t METHOD_NO_ACCEPTABLE_METHODS      = 0xFF;
++
++/*
++ *   The client connects to the server, and sends a version
++ * identifier/method selection message:
++ *
++ *                 +----+----------+----------+
++ *                 |VER | NMETHODS | METHODS  |
++ *                 +----+----------+----------+
++ *                 | 1  |    1     | 1 to 255 |
++ *                 +----+----------+----------+
++ *
++ *  The VER field is set to X'05' for this version of the protocol.  The
++ *  NMETHODS field contains the number of method identifier octets that
++ *  appear in the METHODS field.
++ */
++/* no es un ADT/CDT para no evitar malloc/free */
++/** estado del parser de hello request */
++
++enum hello_state {
++    hello_version,
++    /** debemos leer la cantidad de metodos */
++    hello_nmethods,
++    /** nos encontramos leyendo los métodos */
++    hello_methods,
++    hello_done,
++    hello_error_unsupported_version,
++};
++
++struct hello_parser {
++    /** invocado cada vez que se presenta un nuevo método */
++    void (*on_authentication_method) 
++         (struct hello_parser *parser, const uint8_t method);
++
++    /** permite al usuario del parser almacenar sus datos */
++    void *data;
++    /******** zona privada *****************/
++    enum hello_state state;
++    /* metodos que faltan por leer */
++    uint8_t remaining;
++};
++
++/** inicializa el parser */
++void hello_parser_init (struct hello_parser *p);
++
++/** entrega un byte al parser. retorna true si se llego al final  */
++enum hello_state hello_parser_feed (struct hello_parser *p, uint8_t b);
++
++/**
++ * por cada elemento del buffer llama a `hello_parser_feed' hasta que
++ * el parseo se encuentra completo o se requieren mas bytes.
++ *
++ * @param errored parametro de salida. si es diferente de NULL se deja dicho
++ *   si el parsing se debió a una condición de error
++ */
++enum hello_state
++hello_consume(buffer *b, struct hello_parser *p, bool *errored);
++
++/**
++ * Permite distinguir a quien usa hello_parser_feed si debe seguir
++ * enviando caracters o no. 
++ *
++ * En caso de haber terminado permite tambien saber si se debe a un error
++ */
++bool 
++hello_is_done(const enum hello_state state, bool *errored);
++
++/**
++ * En caso de que se haya llegado a un estado de error, permite obtener una
++ * representación textual que describe el problema
++ */
++extern const char *
++hello_error(const struct hello_parser *p);
++
++
++/** libera recursos internos del parser */
++void hello_parser_close(struct hello_parser *p);
++
++static const uint8_t SOCKS_HELLO_NOAUTHENTICATION_REQUIRED = 0x00;
++/*
++ * If the selected METHOD is X'FF', none of the methods listed by the
++   client are acceptable, and the client MUST close the connection.
++ */
++static const uint8_t SOCKS_HELLO_NO_ACCEPTABLE_METHODS = 0xFF;
++
++
++/**
++ * serializa en buff la una respuesta al hello.
++ *
++ * Retorna la cantidad de bytes ocupados del buffer o -1 si no había
++ * espacio suficiente.
++ */
++int
++hello_marshall(buffer *b, const uint8_t method);
++
++#endif
+diff --git a/src/hello_test.c b/src/hello_test.c
+new file mode 100644
+index 0000000..fea94a5
+--- /dev/null
++++ b/src/hello_test.c
+@@ -0,0 +1,143 @@
++#include <stdio.h>
++#include <stdlib.h>
++#include <check.h>
++
++#include "hello.h"
++#include "tests.h"
++
++#define FIXBUF(b, data) buffer_init(&(b), N(data), (data)); \
++                        buffer_write_adv(&(b), N(data))
++
++static void
++on_hello_method(struct hello_parser *p, const uint8_t method) {
++    uint8_t *selected  = p->data;
++    
++    if(SOCKS_HELLO_NOAUTHENTICATION_REQUIRED == method
++      || method >= 0xFA) {
++       *selected = method;
++    }
++}
++
++START_TEST (test_hello_normal) {
++    uint8_t method = SOCKS_HELLO_NO_ACCEPTABLE_METHODS;
++    struct hello_parser parser = {
++        .data                     = &method,
++        .on_authentication_method = on_hello_method,
++    };
++    hello_parser_init(&parser);
++    uint8_t data[] = {
++        0x05, 0x02, 0x00, 0x01,
++    };
++    buffer b; FIXBUF(b, data);
++    bool errored = false;
++    enum hello_state st = hello_consume(&b, &parser, &errored);
++    ck_assert_uint_eq(false, errored);
++    ck_assert_uint_eq(SOCKS_HELLO_NOAUTHENTICATION_REQUIRED, method);
++    ck_assert_uint_eq(hello_done, st);
++}
++END_TEST
++
++START_TEST (test_hello_no_methods) {
++    uint8_t method = SOCKS_HELLO_NO_ACCEPTABLE_METHODS;
++    struct hello_parser parser = {
++        .data                     = &method,
++        .on_authentication_method = &on_hello_method,
++    };
++    hello_parser_init(&parser);
++    
++    unsigned char data[] = {
++        0x05, 0x00,
++    };
++    buffer b; FIXBUF(b, data);
++
++    bool errored = false;
++    enum hello_state st = hello_consume(&b, &parser, &errored);
++    ck_assert_uint_eq(false, errored);
++    ck_assert_uint_eq(SOCKS_HELLO_NO_ACCEPTABLE_METHODS, method);
++    ck_assert_uint_eq(hello_done, st);
++}
++END_TEST
++
++START_TEST (test_hello_unsupported_version) {
++    struct hello_parser parser = {
++        .data                     = 0x00,
++        .on_authentication_method = &on_hello_method,
++    };
++    hello_parser_init(&parser);
++    
++    unsigned char data[] = {
++        0x04,
++    };
++    buffer b; FIXBUF(b, data);
++    bool errored = false;
++    enum hello_state st = hello_consume(&b, &parser, &errored);
++    ck_assert_uint_eq(hello_error_unsupported_version, st);
++    ck_assert_uint_eq(true, errored);
++}
++END_TEST
++
++START_TEST (test_hello_multiple_request) {
++    uint8_t method = SOCKS_HELLO_NO_ACCEPTABLE_METHODS;
++    struct hello_parser parser = {
++        .data                     = &method,
++        .on_authentication_method = &on_hello_method,
++    };
++    hello_parser_init(&parser);
++
++    unsigned char data[] = {
++        0x05, 0x01, 0xfa,
++        0x05, 0x01, 0xfb,
++    };
++    buffer b; FIXBUF(b, data);
++    bool errored = false;
++    enum hello_state st;
++
++    st = hello_consume(&b, &parser, &errored);
++    ck_assert_uint_eq(false, errored);
++    ck_assert_uint_eq(0xfa, method);
++    ck_assert_uint_eq(hello_done, st);
++
++    errored = false;
++    method = SOCKS_HELLO_NO_ACCEPTABLE_METHODS;
++    hello_parser_init(&parser);
++    st = hello_consume(&b, &parser, &errored);
++    ck_assert_uint_eq(false, errored);
++    ck_assert_uint_eq(0xfb, method);
++    ck_assert_uint_eq(hello_done, st);
++}
++END_TEST
++
++Suite * 
++hello_suite(void) {
++    Suite *s;
++    TCase *tc;
++
++    s = suite_create("socks");
++
++    /* Core test case */
++    tc = tcase_create("hello");
++
++    tcase_add_test(tc, test_hello_normal);
++    tcase_add_test(tc, test_hello_no_methods);
++    tcase_add_test(tc, test_hello_unsupported_version);
++    tcase_add_test(tc, test_hello_multiple_request);
++    suite_add_tcase(s, tc);
++
++    return s;
++}
++
++int 
++main(void) {
++    int number_failed;
++    Suite *s;
++    SRunner *sr;
++
++    s = hello_suite();
++    sr = srunner_create(s);
++
++    srunner_run_all(sr, CK_NORMAL);
++    number_failed = srunner_ntests_failed(sr);
++    srunner_free(sr);
++    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
++}
++
+-- 
+2.31.1
+

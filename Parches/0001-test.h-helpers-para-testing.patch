@@ -1,0 +1,31 @@
+From 8f5a3007312bd0d81bb4758ceb3c63b622f6ab20 Mon Sep 17 00:00:00 2001
+From: "Juan F. Codagnone" <juan@leak.com.ar>
+Date: Thu, 15 Mar 2018 12:59:23 -0300
+Subject: [PATCH 01/11] test.h: helpers para testing
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Se provee la clásica macro N(x) para contar elementos de un arreglo.
+---
+ src/tests.h | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+ create mode 100644 src/tests.h
+
+diff --git a/src/tests.h b/src/tests.h
+new file mode 100644
+index 0000000..9e63d78
+--- /dev/null
++++ b/src/tests.h
+@@ -0,0 +1,8 @@
++#ifndef TEST_H_8VyRIy8mLICCGx62mh19ScMWpkI
++#define TEST_H_8VyRIy8mLICCGx62mh19ScMWpkI
++
++
++#define N(x) (sizeof(x)/sizeof(x[0]))
++
++
++#endif
+-- 
+2.26.2
+
