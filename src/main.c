@@ -28,6 +28,7 @@ static bool done = false;
 static void sigterm_handler(const int signal) {
     printf("signal %d, cleaning up and exiting\n",signal);
     done = true;
+    // exit(0);
 }
 
 /**
@@ -55,18 +56,17 @@ static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
     struct buffer serverBuf;
     buffer *serverBuffer = &serverBuf;
     uint8_t serverDirectBuff[1024];
-    buffer_init(serverBuffer, N(serverDirectBuff), serverDirectBuff);
+    buffer_init(&serverBuf, N(serverDirectBuff), serverDirectBuff);
 
     struct buffer clientBuf;
-    buffer *clientBuffer = &clientBuf;
     uint8_t clientDirectBuff[1024];
-    buffer_init(clientBuffer, N(clientDirectBuff), clientDirectBuff);
+    buffer_init(&clientBuf, N(clientDirectBuff), clientDirectBuff);
 
 
     // enviar saludo
-    memcpy(clientDirectBuff, "+OK POP3 server ready\r\n", 23);
-    buffer_write_adv(clientBuffer, 23);
-    sock_blocking_write(fd, clientBuffer);
+    memcpy(serverDirectBuff, "+OK POP3 server ready\r\n", 23);
+    buffer_write_adv(serverBuffer, 23);
+    sock_blocking_write(fd, serverBuffer);
 
     // leemos comando
     {
