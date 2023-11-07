@@ -63,7 +63,7 @@ sock_blocking_write(const int fd, buffer *b) {
 
     do {
         ptr = buffer_read_ptr(b, &n);
-        nwritten = send(fd, ptr, n, MSG_NOSIGNAL);
+        nwritten = send(fd, ptr, n, 0);
         if (nwritten > 0) {
             buffer_read_adv(b, nwritten);
         } else /* if (errno != EINTR) */ {
@@ -84,7 +84,7 @@ sock_blocking_copy(const int source, const int dest) {
         char* out_ptr = buf;
         ssize_t nwritten;
         do {
-            nwritten = send(dest, out_ptr, nread, MSG_NOSIGNAL);
+            nwritten = send(dest, out_ptr, nread, 0);
             if (nwritten > 0) {
                 nread -= nwritten;
                 out_ptr += nwritten;

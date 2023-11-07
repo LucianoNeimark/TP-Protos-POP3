@@ -53,27 +53,27 @@ struct connection {
 
 static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
     struct buffer serverBuf;
-    buffer *sb = &serverBuf;
+    buffer *serverBuffer = &serverBuf;
     uint8_t serverDirectBuff[1024];
-    buffer_init(&serverBuf, N(serverDirectBuff), serverDirectBuff);
-    
+    buffer_init(serverBuffer, N(serverDirectBuff), serverDirectBuff);
+
     struct buffer clientBuf;
-    buffer *cb = &clientBuf;
+    buffer *clientBuffer = &clientBuf;
     uint8_t clientDirectBuff[1024];
-    buffer_init(&clientBuf, N(clientDirectBuff), clientDirectBuff);
+    buffer_init(clientBuffer, N(clientDirectBuff), clientDirectBuff);
 
 
     // enviar saludo
-    memcpy(serverDirectBuff, "+OK POP3 server ready\r\n", 23);
-    buffer_write_adv(sb, 23);
-    sock_blocking_write(fd, cb);
+    memcpy(clientDirectBuff, "+OK POP3 server ready\r\n", 23);
+    buffer_write_adv(clientBuffer, 23);
+    sock_blocking_write(fd, clientBuffer);
 
     // leemos comando
     {
         bool error = false;
         size_t buffsize;
         ssize_t n;
-        struct pop3cmd_parser pop3cmd_parser = { 
+        struct pop3cmd_parser pop3cmd_parser = {0 
         };
         pop3cmd_parser_init(&pop3cmd_parser);
 
