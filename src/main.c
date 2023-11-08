@@ -29,7 +29,7 @@ static bool done = false;
 static void sigterm_handler(const int signal) {
     printf("signal %d, cleaning up and exiting\n",signal);
     done = true;
-    // exit(0);
+    exit(0);
 }
 
 /**
@@ -84,9 +84,8 @@ static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
                 buffer_write_adv(&clientBuf, n); 
                 const enum pop3cmd_state st = pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
                 if(pop3cmd_parser.finished) {
-                    printf("Success!! %d\n", st);
-                    executeCommand(&pop3cmd_parser);
-                    parser_reset(&pop3cmd_parser);
+                  executeCommand(&pop3cmd_parser);
+                  parser_reset(&pop3cmd_parser);
                 } else {
                   printf("Not finished\n");
                 }

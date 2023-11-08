@@ -36,7 +36,7 @@ typedef struct pop3cmd_parser {
     char * arg2;
 } pop3cmd_parser;
 
-pop3cmd_parser * parser_init();
+pop3cmd_parser * parser_init(void);
 
 pop3cmd_state parser_feed(pop3cmd_parser * p, const uint8_t c);
 

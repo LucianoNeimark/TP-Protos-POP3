@@ -4,7 +4,7 @@
 #include "pop3cmd.h"
 
 extern pop3cmd_parser *  
-pop3cmd_parser_init() {
+pop3cmd_parser_init(void) {
     return parser_init();
 }
 

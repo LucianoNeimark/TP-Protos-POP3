@@ -8,7 +8,7 @@
 #include "nuestro-parser.h"
 
 /** inicializa el parser */
-pop3cmd_parser * pop3cmd_parser_init ();
+pop3cmd_parser * pop3cmd_parser_init (void);
 
 /** entrega un byte al parser. retorna true si se llego al final  */
 enum pop3cmd_state pop3cmd_parser_feed (struct pop3cmd_parser *p, uint8_t b);
