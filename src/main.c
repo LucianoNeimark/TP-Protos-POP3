@@ -22,6 +22,7 @@
 #include "netutils.h"
 #include "tests.h"
 #include "pop3cmd.h"
+#include "command-handler.h"
 
 static bool done = false;
 
@@ -73,9 +74,7 @@ static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
         bool error = false;
         size_t buffsize;
         ssize_t n;
-        struct pop3cmd_parser pop3cmd_parser = {0 
-        };
-        pop3cmd_parser_init(&pop3cmd_parser);
+        struct pop3cmd_parser pop3cmd_parser = *pop3cmd_parser_init();
 
         
         do {
@@ -84,8 +83,12 @@ static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
             if(n > 0) {
                 buffer_write_adv(&clientBuf, n); 
                 const enum pop3cmd_state st = pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
-                if(pop3cmd_is_done(st, &error)) {
-                    break;
+                if(pop3cmd_parser.finished) {
+                    printf("Success!! %d\n", st);
+                    executeCommand(&pop3cmd_parser);
+                    parser_reset(&pop3cmd_parser);
+                } else {
+                  printf("Not finished\n");
                 }
 
             } else {
@@ -226,3 +229,34 @@ finally:
     }
     return ret;
 }
+
+// #include "nuestro-parser.h"
+
+// int
+// main(const int argc, const char **argv) {
+
+//   pop3cmd_parser * p = parser_init();
+
+//   char * hello = "STAT arg1\r\n";
+  
+//   // state * estatusoide;
+
+//   int i = 0;
+//   while(p->state != ERROR && p->finished == false){
+//     printf("el estado actual es: %d\n", parser_feed(p, hello[i]));
+//     i++;
+//   }
+
+//   printf("el estado final es: %d\n", p->state);
+
+//   printf("el arg1 final es: %s\n", p->arg1);
+
+//   printf("el arg2 final es: %s\n", p->arg2);
+
+//   parser_destroy(p);
+//   printf("are you null? %d\n", p==NULL?77:90);
+
+//   return 0;
+// }
+
+// void parser_reset(parser * p);
