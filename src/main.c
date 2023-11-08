@@ -23,6 +23,7 @@
 #include "tests.h"
 #include "pop3cmd.h"
 #include "command-handler.h"
+// #include "pop3.h"
 
 static bool done = false;
 
@@ -53,7 +54,13 @@ struct connection {
  * @param caddr información de la conexiónentrante.
  */
 
-static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
+static void pop3_handle_connection(int fd, const struct sockaddr *caddr) {
+
+    //creo el client
+    Client *client = malloc(sizeof(Client));
+    client->fd = fd;
+
+
     struct buffer serverBuf;
     buffer *serverBuffer = &serverBuf;
     uint8_t serverDirectBuff[1024];
@@ -63,11 +70,16 @@ static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
     uint8_t clientDirectBuff[1024];
     buffer_init(&clientBuf, N(clientDirectBuff), clientDirectBuff);
 
+    client->serverBuffer = serverBuffer;
+    client->clientBuffer = &clientBuf;
+    client->name = "Harrold";
+    client->password="secret"; 
+
 
     // enviar saludo
-    memcpy(serverDirectBuff, "+OK POP3 server ready\r\n", 23);
+    memcpy(serverDirectBuff, "+OK POa4 server ready\r\n", 23);
     buffer_write_adv(serverBuffer, 23);
-    sock_blocking_write(fd, serverBuffer);
+    sock_blocking_write(client->fd, serverBuffer);
 
     // leemos comando
     {
@@ -79,13 +91,21 @@ static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
         
         do {
             uint8_t *ptr = buffer_write_ptr(&clientBuf, &buffsize);
-            n = recv(fd, ptr, buffsize, 0); 
+            n = recv(client->fd, ptr, buffsize, 0); 
             if(n > 0) {
                 buffer_write_adv(&clientBuf, n); 
                 const enum pop3cmd_state st = pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
                 if(pop3cmd_parser.finished) {
-                  executeCommand(&pop3cmd_parser);
+
+
+                  sprintf((char *)serverDirectBuff, "+ %d\r\n", st);
+                  buffer_write_adv(serverBuffer, strlen((char *)serverDirectBuff));
+                  sock_blocking_write(client->fd, serverBuffer);
+                  printf("fd: %s", client->name);
+
+                  executeCommand(&pop3cmd_parser, client);
                   parser_reset(&pop3cmd_parser);
+                  printf("fd: %d", client->fd);
                 } else {
                   printf("Not finished\n");
                 }
@@ -101,9 +121,7 @@ static void pop3_handle_connection(const int fd, const struct sockaddr *caddr) {
         // return error;
     }
 
-
-
-    close(fd);
+    close(client->fd);
 }
 
 /** rutina de cada hilo worker */
@@ -126,24 +144,27 @@ int serve_pop3_concurrent_blocking(const int server) {
     struct sockaddr_in6 caddr;
     socklen_t caddrlen = sizeof (caddr);
     // Wait for a client to connect
-    const int client = accept(server, (struct sockaddr*)&caddr, &caddrlen);
-    if (client < 0) {
+    const int fd = accept(server, (struct sockaddr*)&caddr, &caddrlen);
+
+
+
+    if (fd < 0) {
       perror("unable to accept incoming socket");
     } else {
       // TODO(juan): limitar la cantidad de hilos concurrentes
       struct connection* c = malloc(sizeof (struct connection));
       if (c == NULL) {
         // lo trabajamos iterativamente
-        pop3_handle_connection(client, (struct sockaddr*)&caddr);
+        pop3_handle_connection(fd, (struct sockaddr*)&caddr);
       } else {
         pthread_t tid;
-        c->fd = client;
+        c->fd = fd;
         c->addrlen = caddrlen;
         memcpy(&(c->addr), &caddr, caddrlen);
         if (pthread_create(&tid, 0, handle_connection_pthread, c)) {
           free(c);
           // lo trabajamos iterativamente
-          pop3_handle_connection(client, (struct sockaddr*)&caddr);
+          pop3_handle_connection(fd, (struct sockaddr*)&caddr);
         }
       }
     }
