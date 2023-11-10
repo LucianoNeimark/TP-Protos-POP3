@@ -23,9 +23,12 @@
 #include "tests.h"
 #include "pop3cmd.h"
 #include "command-handler.h"
+#include "args.h"
 // #include "pop3.h"
 
 static bool done = false;
+
+struct POP3args* args;
 
 static void sigterm_handler(const int signal) {
     printf("signal %d, cleaning up and exiting\n",signal);
@@ -72,12 +75,10 @@ static void pop3_handle_connection(int fd, const struct sockaddr *caddr) {
 
     client->serverBuffer = serverBuffer;
     client->clientBuffer = &clientBuf;
-    client->name = "Harrold";
-    client->password="secret"; 
 
 
     // enviar saludo
-    memcpy(serverDirectBuff, "+OK POa4 server ready\r\n", 23);
+    memcpy(serverDirectBuff, "+OK POP3 server ready\r\n", 23);
     buffer_write_adv(serverBuffer, 23);
     sock_blocking_write(client->fd, serverBuffer);
 
@@ -94,18 +95,10 @@ static void pop3_handle_connection(int fd, const struct sockaddr *caddr) {
             n = recv(client->fd, ptr, buffsize, 0); 
             if(n > 0) {
                 buffer_write_adv(&clientBuf, n); 
-                const enum pop3cmd_state st = pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
+                /* const enum pop3cmd_state st = */ pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
                 if(pop3cmd_parser.finished) {
-
-
-                  sprintf((char *)serverDirectBuff, "+ %d\r\n", st);
-                  buffer_write_adv(serverBuffer, strlen((char *)serverDirectBuff));
-                  sock_blocking_write(client->fd, serverBuffer);
-                  printf("fd: %s", client->name);
-
                   executeCommand(&pop3cmd_parser, client);
                   parser_reset(&pop3cmd_parser);
-                  printf("fd: %d", client->fd);
                 } else {
                   printf("Not finished\n");
                 }
@@ -178,31 +171,35 @@ int serve_pop3_concurrent_blocking(const int server) {
 
 
 int
-main(const int argc, const char **argv) {
-    unsigned port = 1110;
+main( int argc,  char **argv) {
 
-    if(argc == 1) {
-        // utilizamos el default
-    } else if(argc == 2) {
-        char *end     = 0;
-        const long sl = strtol(argv[1], &end, 10);
+    args = (struct POP3args*)malloc(sizeof(struct POP3args));
+    parse_args(argc, argv, args);
 
-        if (end == argv[1]|| '\0' != *end 
-           || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno)
-           || sl < 0 || sl > USHRT_MAX) {
-            fprintf(stderr, "port should be an integer: %s\n", argv[1]);
-            return 1;
-        }
-        port = sl;
-    } else {
-        fprintf(stderr, "Usage: %s <port>\n", argv[0]);
-        return 1;
-    }
+    // unsigned port = 1110;
+
+    // if(argc == 1) {
+    //     // utilizamos el default
+    // } else if(argc == 2) {
+    //     char *end     = 0;
+    //     const long sl = strtol(argv[1], &end, 10);
+
+    //     if (end == argv[1]|| '\0' != *end 
+    //        || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno)
+    //        || sl < 0 || sl > USHRT_MAX) {
+    //         fprintf(stderr, "port should be an integer: %s\n", argv[1]);
+    //         return 1;
+    //     }
+    //     port = sl;
+    // } else {
+    //     fprintf(stderr, "Usage: %s <port>\n", argv[0]);
+    //     return 1;
+    // }
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family      = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port        = htons(port);
+    addr.sin_port        = htons(args->POP3_port);
 
     const char *err_msg;
 
@@ -212,7 +209,7 @@ main(const int argc, const char **argv) {
         goto finally;
     }
 
-    fprintf(stdout, "Listening on TCP port %d\n", port);
+    fprintf(stdout, "Listening on TCP port %d\n", args->POP3_port);
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));

@@ -21,8 +21,10 @@ typedef enum pop3cmd_state {
     USER,
     PASS,
     APOP,
+    CAPA,
     UNDEF,
-    ERROR
+    ERROR,
+    
 } pop3cmd_state; 
 
 typedef struct pop3cmd_parser {

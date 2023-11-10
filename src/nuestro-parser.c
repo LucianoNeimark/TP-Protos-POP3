@@ -43,6 +43,8 @@ void process_buffer(pop3cmd_parser * p) {
             p->state = PASS;
         } else if (strcmp(p->line, "APOP") == 0) {
             p->state = APOP;
+        } else if (strcmp(p->line, "CAPA") == 0) {
+            p->state = CAPA;
         } else {
             p->state = ERROR;
         }
