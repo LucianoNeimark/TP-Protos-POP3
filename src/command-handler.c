@@ -19,6 +19,13 @@ void handleStat(char * arg1, char * arg2, Client * client) {
 
 void handleList(char * arg1, char * arg2, Client * client) {
     printf("LIST command!\n");
+    write_to_client(client,"+OK\r\n");
+    for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
+        char * message = malloc(100);
+        sprintf(message,"%d. %d \r\n", client->files[i].file_id, client->files[i].file_size);
+        write_to_client(client, message);
+        free(message);
+    }
 }
 
 void handleRetr(char * arg1, char * arg2, Client * client) {
@@ -76,6 +83,8 @@ void handlePass(char * arg1, char * arg2, Client * client) {
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
             memccpy(client->password, arg1, 0, strlen(arg1) + 1);
             client->isLogged = true;
+            printf("entrando!");
+            populate_array(client);
         } else {
             write_to_client(client, "-ERR\r\n");
         }

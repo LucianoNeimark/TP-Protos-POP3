@@ -1,3 +1,6 @@
+#ifndef POP3_H
+#define POP3_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +9,14 @@
 #include <stdbool.h>
 #include "buffer.h"
 
+#define MAX_EMAILS 10
+
+typedef struct file{
+    char  file_name[FILENAME_MAX];
+    int file_id;
+    int file_size;
+    bool deleted;
+}file;
 
 typedef struct Client {
     uint32_t fd;
@@ -14,4 +25,14 @@ typedef struct Client {
     char * name;
     char * password;
     bool isLogged;
+    file files[MAX_EMAILS];
 }Client;
+
+
+
+
+
+
+#endif // POP3_H
+
+

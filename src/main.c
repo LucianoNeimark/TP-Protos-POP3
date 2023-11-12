@@ -8,8 +8,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <errno.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -24,7 +22,6 @@
 #include "pop3cmd.h"
 #include "command-handler.h"
 #include "args.h"
-// #include "pop3.h"
 
 static bool done = false;
 
@@ -116,6 +113,8 @@ static void pop3_handle_connection(int fd, const struct sockaddr *caddr) {
     }
 
     close(client->fd);
+    free(client);
+
 }
 
 /** rutina de cada hilo worker */
@@ -125,6 +124,7 @@ static void *handle_connection_pthread(void *args) {
   pthread_detach(pthread_self());
   pop3_handle_connection(c->fd, (struct sockaddr *)&c->addr);
   free(args);
+
   return 0;
 }
 
@@ -157,6 +157,7 @@ int serve_pop3_concurrent_blocking(const int server) {
         memcpy(&(c->addr), &caddr, caddrlen);
         if (pthread_create(&tid, 0, handle_connection_pthread, c)) {
           free(c);
+
           // lo trabajamos iterativamente
           pop3_handle_connection(fd, (struct sockaddr*)&caddr);
         }
@@ -175,6 +176,7 @@ int
 main( int argc,  char **argv) {
 
     args = (struct POP3args*)malloc(sizeof(struct POP3args));
+
     parse_args(argc, argv, args);
 
     // unsigned port = 1110;
@@ -247,34 +249,3 @@ finally:
     }
     return ret;
 }
-
-// #include "nuestro-parser.h"
-
-// int
-// main(const int argc, const char **argv) {
-
-//   pop3cmd_parser * p = parser_init();
-
-//   char * hello = "STAT arg1\r\n";
-  
-//   // state * estatusoide;
-
-//   int i = 0;
-//   while(p->state != ERROR && p->finished == false){
-//     printf("el estado actual es: %d\n", parser_feed(p, hello[i]));
-//     i++;
-//   }
-
-//   printf("el estado final es: %d\n", p->state);
-
-//   printf("el arg1 final es: %s\n", p->arg1);
-
-//   printf("el arg2 final es: %s\n", p->arg2);
-
-//   parser_destroy(p);
-//   printf("are you null? %d\n", p==NULL?77:90);
-
-//   return 0;
-// }
-
-// void parser_reset(parser * p);

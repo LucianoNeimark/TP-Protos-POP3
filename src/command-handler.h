@@ -3,10 +3,10 @@
 
 #include "nuestro-parser.h"
 #include <stdio.h>
-#include "pop3.h"
 #include "netutils.h"
 #include <string.h>
 #include "args.h"
+#include "pop3file.h"
 
 typedef void (*CommandHandler)(char * arg1, char * arg2, Client * client);
 
