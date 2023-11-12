@@ -17,7 +17,6 @@ port(const char *s) {
         || sl < 0 || sl > USHRT_MAX) {
          fprintf(stderr, "port should in in the range of 1-65536: %s\n", s);
          exit(1);
-         return 1;
      }
      return (unsigned short)sl;
 }
@@ -35,6 +34,15 @@ user(char *s, struct users *user) {
         user->pass = p;
     }
 
+}
+
+
+static void
+directory(char * dest, char * src){
+
+    printf("%s",src);
+    printf("%s",dest);
+    strcpy(dest,src);
 }
 
 static void
@@ -88,7 +96,7 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
             { 0,           0,                 0, 0 }
         };
 
-        c = getopt_long(argc, argv, "hl:L:Np:P:u:v", long_options, &option_index); //Estaba el long_options
+        c = getopt_long(argc, argv, "hl::L::p::o::u:vd:t:f:", long_options, &option_index); //Estaba el long_options
         if (c == -1)
             break;
 
@@ -114,9 +122,10 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
             //     break;
             case 'u':
                 if(nusers >= MAX_USERS) {
-                    fprintf(stderr, "maximun number of command line users reached: %d.\n", MAX_USERS);
+                    fprintf(stderr, "maximum number of command line users reached: %d.\n", MAX_USERS);
                     exit(1);
                 } else {
+                    printf("user: %s\n", optarg);
                     user(optarg, args->users + nusers);
                     nusers++;
                 }
@@ -124,7 +133,11 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
             case 'v':
                 version();
                 exit(0);
+            case 'd':
+                printf("directory: %s\n", optarg);
+                directory(args->directory,optarg);
                 break;
+
             default:
                 fprintf(stderr, "unknown argument %d.\n", c);
                 exit(1);

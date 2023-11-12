@@ -18,7 +18,30 @@ void handleStat(char * arg1, char * arg2, Client * client) {
 }
 
 void handleList(char * arg1, char * arg2, Client * client) {
-    printf("LIST command!\n");
+    if(!strlen(arg1)){
+        char * message = malloc(100);
+        sprintf(message,"+OK %d messages \r\n", client->file_cant);
+        write_to_client(client, message);
+        for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
+            free(message);
+            message = malloc(100);
+            sprintf(message,"%d. %d \r\n", client->files[i].file_id, client->files[i].file_size);
+            write_to_client(client, message);
+        }
+    }else{
+        char * message = malloc(100);
+        for(unsigned int i = 0; i<client->file_cant; i++){
+            if(client->files[i].file_id == atoi(arg1)){
+                sprintf(message,"+OK %d %d \r\n", client->files[i].file_id, client->files[i].file_size);
+                write_to_client(client, message);
+                free(message);
+                return;
+            }
+        }
+        sprintf(message,"-ERR no such message, only %d messages in maildrop \r\n", client->file_cant);
+        write_to_client(client, message);
+        free(message);
+    }
 }
 
 void handleRetr(char * arg1, char * arg2, Client * client) {
@@ -76,6 +99,8 @@ void handlePass(char * arg1, char * arg2, Client * client) {
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
             memccpy(client->password, arg1, 0, strlen(arg1) + 1);
             client->isLogged = true;
+            printf("entrando!");
+            populate_array(client);
         } else {
             write_to_client(client, "-ERR\r\n");
         }
@@ -158,6 +183,7 @@ void executeCommand(pop3cmd_parser * p, Client * client) {
         }
         i++;
     }
+    write_to_client(client, "-ERR command not found\r\n");
 
     // for (size_t i = 0; i < sizeof(commandTable) / sizeof(commandTable[0]); i++) {
     //     if (commandTable[i].command == p->state) {
