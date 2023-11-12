@@ -16,7 +16,13 @@ typedef struct file{
     int file_id;
     int file_size;
     bool deleted;
-}file;
+} file;
+
+typedef enum client_state {
+    AUTHORIZATION,
+    TRANSACTION,
+    UPDATE
+} client_state;
 
 typedef struct Client {
     uint32_t fd;
@@ -24,10 +30,10 @@ typedef struct Client {
     struct buffer* clientBuffer;
     char * name;
     char * password;
-    bool isLogged;
+    client_state state;
     file files[MAX_EMAILS];
     unsigned int file_cant;
-}Client;
+} Client;
 
 
 

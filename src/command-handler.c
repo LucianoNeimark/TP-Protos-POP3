@@ -107,7 +107,7 @@ void handlePass(char * arg1, char * arg2, Client * client) {
             write_to_client(client, "+OK Logged in.\r\n");
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
             memcpy(client->password, arg1, strlen(arg1) + 1);
-            client->isLogged = true;
+            client->state = TRANSACTION;
             populate_array(client);
         } else {
             free(client->name);
@@ -191,9 +191,22 @@ CommandInfo authTable[] = {
     {0, NULL}
 };
 
+CommandInfo * getTable(client_state state) {
+    switch(state) {
+        case AUTHORIZATION:
+            return nonAuthTable;
+        case TRANSACTION:
+            return authTable;
+        case UPDATE:
+            return nonAuthTable;
+        default:
+            return NULL;
+    }
+}
+
 void executeCommand(pop3cmd_parser * p, Client * client) {
     
-    CommandInfo *commandTable = client->isLogged ? authTable : nonAuthTable;
+    CommandInfo *commandTable = getTable(client->state);
     
     int i = 0;
     while(commandTable[i].handler != NULL){

@@ -34,8 +34,6 @@ int populate_array(Client * client){
         return -1;
     }
 
-    printf("path : %s\n", path);
-
     DIR * direc = opendir(path);
 
     if(direc == NULL) {
