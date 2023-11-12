@@ -18,16 +18,23 @@ void handleStat(char * arg1, char * arg2, Client * client) {
 }
 
 void handleList(char * arg1, char * arg2, Client * client) {
+
+    if (client->files[0].file_id == 0) {
+        write_to_client(client, "-ERR Error opening user folder.\r\n");
+        return ;
+    }
+
     if(!strlen(arg1)){
         char * message = malloc(100);
-        sprintf(message,"+OK %d messages \r\n", client->file_cant);
+        sprintf(message,"+OK %d messages:\r\n", client->file_cant);
         write_to_client(client, message);
         for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
             free(message);
             message = malloc(100);
-            sprintf(message,"%d. %d \r\n", client->files[i].file_id, client->files[i].file_size);
+            sprintf(message,"%d %d\r\n", client->files[i].file_id, client->files[i].file_size);
             write_to_client(client, message);
         }
+        write_to_client(client, ".\r\n");
     }else{
         char * message = malloc(100);
         for(unsigned int i = 0; i<client->file_cant; i++){
@@ -77,7 +84,7 @@ void handleUser(char * arg1, char * arg2, Client * client) {
 
     //Save client name into client struct
     client->name = malloc(strlen(arg1) + 1);
-    memccpy(client->name, arg1, 0, strlen(arg1) + 1);
+    memcpy(client->name, arg1, strlen(arg1) + 1);
 
     if (arg1 == NULL) {
         // printf("Expected usage: USER [username]");
@@ -91,18 +98,21 @@ void handleUser(char * arg1, char * arg2, Client * client) {
 void handlePass(char * arg1, char * arg2, Client * client) {
 
     if (arg1 == NULL) {
-        printf("Expected usage: PASS [password]"); //FIXME RFC
+        write_to_client(client, "Expected usage: PASS [password]"); //FIXME RFC ( TODO esto es asi? le tiro pass sin nada e intenta autenticarlo)
+    } else if (client->name == NULL) {
+        write_to_client(client, "-ERR No username given.\r\n");
     } else {
-
+        // printf("Args->users? %s\n", args->users);
         if (check_username(client->name, arg1, args->users)) {
-            write_to_client(client, "+OK\r\n");
+            write_to_client(client, "+OK Logged in.\r\n");
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
-            memccpy(client->password, arg1, 0, strlen(arg1) + 1);
+            memcpy(client->password, arg1, strlen(arg1) + 1);
             client->isLogged = true;
-            printf("entrando!");
             populate_array(client);
         } else {
-            write_to_client(client, "-ERR\r\n");
+            free(client->name);
+            client->name = NULL;
+            write_to_client(client, "-ERR [AUTH] Authentication failed.\r\n");
         }
     }
 }
@@ -111,25 +121,34 @@ void handleApop(char * arg1, char * arg2, Client * client) {
     printf("APOP command!\n");
 }
 
-void handleCapa(char * arg1, char * arg2, Client * client) {
+void handleCapaNonAuth(char * arg1, char * arg2, Client * client) {
     char * message = "+OK Capability list follows\r\n"
-                     "QUIT\n"
-                     "STAT\n"
-                     "LIST\n"
-                     "RETR\n"
-                     "DELE\n"
-                     "NOOP\n"
-                     "RSET\n"
-                     "TOP\n"
-                     "UIDL\n"
-                     "USER\n"
-                     "PASS\n"
-                     "APOP\n"
+                     "CAPA\r\n"
+                     "QUIT\r\n"
+                     "USER\r\n"
+                     "PASS\r\n"
+                     "TOP\r\n"
+                     "UIDL\r\n"
                      ".\r\n";
     write_to_client(client, message);
 }
 
-
+void handleCapaAuth(char * arg1, char * arg2, Client * client) {
+    char * message = "+OK Capability list follows\r\n"
+                     "CAPA\r\n"
+                     "QUIT\r\n"
+                     "STAT\r\n"
+                     "LIST\r\n"
+                     "RETR\r\n"
+                     "DELE\r\n"
+                     "NOOP\r\n"
+                     "RSET\r\n"
+                     "TOP\r\n"
+                     "UIDL\r\n"
+                     "APOP\r\n"
+                     ".\r\n";
+    write_to_client(client, message);
+}
 
 // CommandInfo commandTable[] = {
 //     {QUIT, handleQuit},
@@ -147,34 +166,35 @@ void handleCapa(char * arg1, char * arg2, Client * client) {
 // };
 
 CommandInfo nonAuthTable[] = {
-   { QUIT,handleQuit},
-    {USER,handleUser},
-    {PASS,handlePass},
-    {CAPA,handleCapa},
-    {0,NULL}
+    {QUIT, handleQuit},
+    {USER, handleUser},
+    {PASS, handlePass},
+    {TOP, handleTop},
+    {UIDL, handleUidl},
+    {CAPA, handleCapaNonAuth},
+    {0, NULL}
 };
 
 
 CommandInfo authTable[] = {
-    {QUIT,handleQuit},
-    {STAT,handleStat},
-    {LIST,handleList},
-    {RETR,handleRetr},
-    {DELE,handleDele},
-    {NOOP,handleNoop},
-    {RSET,handleRset},
-    {TOP,handleTop},
-    {UIDL,handleUidl},
+    {QUIT, handleQuit},
+    {STAT, handleStat},
+    {LIST, handleList},
+    {RETR, handleRetr},
+    {DELE, handleDele},
+    {NOOP, handleNoop},
+    {RSET, handleRset},
+    {TOP, handleTop},
+    {UIDL, handleUidl},
     {APOP, handleApop},
-    {CAPA,handleCapa},
-    {0,NULL}
+    {CAPA, handleCapaAuth},
+    {0, NULL}
 };
 
 void executeCommand(pop3cmd_parser * p, Client * client) {
-
-
     
-    CommandInfo  *commandTable = client->isLogged ? authTable : nonAuthTable;
+    CommandInfo *commandTable = client->isLogged ? authTable : nonAuthTable;
+    
     int i = 0;
     while(commandTable[i].handler != NULL){
         if(commandTable[i].command == p->state){
@@ -183,7 +203,7 @@ void executeCommand(pop3cmd_parser * p, Client * client) {
         }
         i++;
     }
-    write_to_client(client, "-ERR command not found\r\n");
+    write_to_client(client, "-ERR Unknown command.\r\n");
 
     // for (size_t i = 0; i < sizeof(commandTable) / sizeof(commandTable[0]); i++) {
     //     if (commandTable[i].command == p->state) {

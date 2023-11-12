@@ -12,7 +12,7 @@
 #define MAX_EMAILS 10
 
 typedef struct file{
-    char  file_name[FILENAME_MAX];
+    char file_name[FILENAME_MAX];
     int file_id;
     int file_size;
     bool deleted;

@@ -29,10 +29,12 @@ int populate_array(Client * client){
 
     char * path = malloc(sizeof(char) * MAX_SIZE_PATH);
 
-    if(get_path(path,client->name) == -1) {
+    if(get_path(path, client->name) == -1) {
         printf("Error al obtener el path\n");
         return -1;
     }
+
+    printf("path : %s\n", path);
 
     DIR * direc = opendir(path);
 

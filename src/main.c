@@ -58,6 +58,7 @@ static void pop3_handle_connection(int fd, const struct sockaddr *caddr) {
 
     //creo el client
     Client *client = malloc(sizeof(Client));
+    client->name = NULL;
     client->fd = fd;
     client->isLogged = false;
 
