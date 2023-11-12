@@ -18,11 +18,27 @@ void handleStat(char * arg1, char * arg2, Client * client) {
 }
 
 void handleList(char * arg1, char * arg2, Client * client) {
-    printf("LIST command!\n");
-    write_to_client(client,"+OK\r\n");
-    for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
+    if(!strlen(arg1)){
         char * message = malloc(100);
-        sprintf(message,"%d. %d \r\n", client->files[i].file_id, client->files[i].file_size);
+        sprintf(message,"+OK %d messages \r\n", client->file_cant);
+        write_to_client(client, message);
+        for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
+            free(message);
+            message = malloc(100);
+            sprintf(message,"%d. %d \r\n", client->files[i].file_id, client->files[i].file_size);
+            write_to_client(client, message);
+        }
+    }else{
+        char * message = malloc(100);
+        for(unsigned int i = 0; i<client->file_cant; i++){
+            if(client->files[i].file_id == atoi(arg1)){
+                sprintf(message,"+OK %d %d \r\n", client->files[i].file_id, client->files[i].file_size);
+                write_to_client(client, message);
+                free(message);
+                return;
+            }
+        }
+        sprintf(message,"-ERR no such message, only %d messages in maildrop \r\n", client->file_cant);
         write_to_client(client, message);
         free(message);
     }

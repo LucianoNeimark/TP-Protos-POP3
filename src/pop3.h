@@ -26,6 +26,7 @@ typedef struct Client {
     char * password;
     bool isLogged;
     file files[MAX_EMAILS];
+    unsigned int file_cant;
 }Client;
 
 

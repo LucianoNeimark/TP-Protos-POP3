@@ -58,6 +58,7 @@ int populate_array(Client * client){
       }
     }
     client->files[i].file_id = -1;
+    client->file_cant = i;
 
     closedir(direc);
     free(path);
