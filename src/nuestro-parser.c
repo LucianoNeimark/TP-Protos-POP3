@@ -1,4 +1,6 @@
 #include "nuestro-parser.h"
+#include <ctype.h> 
+
 
 pop3cmd_parser * parser_init(void) {
     pop3cmd_parser *ret = malloc(sizeof(*ret));
@@ -57,8 +59,8 @@ void process_buffer(pop3cmd_parser * p) {
     }
 }
 
-pop3cmd_state parser_feed(pop3cmd_parser * p, const uint8_t c) {
-    
+pop3cmd_state parser_feed(pop3cmd_parser * p, uint8_t c) {
+    if(p->state == UNDEF) c = toupper(c);
     if (BUFFER_SIZE == p->line_size) {
         
         return ERROR;
