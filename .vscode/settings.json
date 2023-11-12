@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "args.h": "c",
+        "command-handler.h": "c",
+        "pop3.h": "c"
+    }
+}

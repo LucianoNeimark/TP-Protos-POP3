@@ -13,5 +13,5 @@ typedef struct Client {
     struct buffer* clientBuffer;
     char * name;
     char * password;
-
+    bool isLogged;
 }Client;

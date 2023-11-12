@@ -75,6 +75,7 @@ void handlePass(char * arg1, char * arg2, Client * client) {
             write_to_client(client, "+OK\r\n");
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
             memccpy(client->password, arg1, 0, strlen(arg1) + 1);
+            client->isLogged = true;
         } else {
             write_to_client(client, "-ERR\r\n");
         }
@@ -120,30 +121,43 @@ void handleCapa(char * arg1, char * arg2, Client * client) {
 //     {APOP, handleApop}
 // };
 
-CommandHandler commandTable[] = {
-    handleQuit,
-    handleStat,
-    handleList,
-    handleRetr,
-    handleDele,
-    handleNoop,
-    handleRset,
-    handleTop,
-    handleUidl,
-    handleUser,
-    handlePass,
-    handleApop,
-    handleCapa
+CommandInfo nonAuthTable[] = {
+   { QUIT,handleQuit},
+    {USER,handleUser},
+    {PASS,handlePass},
+    {CAPA,handleCapa},
+    {0,NULL}
+};
+
+
+CommandInfo authTable[] = {
+    {QUIT,handleQuit},
+    {STAT,handleStat},
+    {LIST,handleList},
+    {RETR,handleRetr},
+    {DELE,handleDele},
+    {NOOP,handleNoop},
+    {RSET,handleRset},
+    {TOP,handleTop},
+    {UIDL,handleUidl},
+    {APOP, handleApop},
+    {CAPA,handleCapa},
+    {0,NULL}
 };
 
 void executeCommand(pop3cmd_parser * p, Client * client) {
 
-    if (p->state >= sizeof(commandTable) / sizeof(commandTable[0])) {
-        printf("Unknown command. %d\n", p->state);
-        return;
-    }
-    commandTable[p->state](p->arg1, p->arg2, client);
 
+    
+    CommandInfo  *commandTable = client->isLogged ? authTable : nonAuthTable;
+    int i = 0;
+    while(commandTable[i].handler != NULL){
+        if(commandTable[i].command == p->state){
+            commandTable[i].handler(p->arg1, p->arg2, client);
+            return;
+        }
+        i++;
+    }
 
     // for (size_t i = 0; i < sizeof(commandTable) / sizeof(commandTable[0]); i++) {
     //     if (commandTable[i].command == p->state) {
