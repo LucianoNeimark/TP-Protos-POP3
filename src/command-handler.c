@@ -183,6 +183,7 @@ void executeCommand(pop3cmd_parser * p, Client * client) {
         }
         i++;
     }
+    write_to_client(client, "-ERR command not found\r\n");
 
     // for (size_t i = 0; i < sizeof(commandTable) / sizeof(commandTable[0]); i++) {
     //     if (commandTable[i].command == p->state) {
