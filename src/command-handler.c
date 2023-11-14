@@ -14,7 +14,10 @@ void handleQuit(char * arg1, char * arg, Client * client) {
 }
 
 void handleStat(char * arg1, char * arg2, Client * client) {
-    printf("STAT command!\n");
+    char * message = malloc(100);
+    sprintf(message,"+OK %d %d\r\n", client->active_file_cant, client->active_file_size);
+    write_to_client(client, message);
+    free(message);
 }
 
 void handleList(char * arg1, char * arg2, Client * client) {
@@ -26,37 +29,76 @@ void handleList(char * arg1, char * arg2, Client * client) {
 
     if(!strlen(arg1)){
         char * message = malloc(100);
-        sprintf(message,"+OK %d messages:\r\n", client->file_cant);
+        sprintf(message,"+OK %d messages (%d octets)\r\n", client->active_file_cant, client->active_file_size);
         write_to_client(client, message);
         for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
             free(message);
             message = malloc(100);
-            sprintf(message,"%d %d\r\n", client->files[i].file_id, client->files[i].file_size);
-            write_to_client(client, message);
+            if (!client->files[i].to_delete) {
+                sprintf(message,"%d %d\r\n", client->files[i].file_id, client->files[i].file_size);
+                write_to_client(client, message);
+            }
         }
         write_to_client(client, ".\r\n");
-    }else{
+    } else {
         char * message = malloc(100);
-        for(unsigned int i = 0; i<client->file_cant; i++){
+        for(unsigned int i = 0; i < client->file_cant; i++){
             if(client->files[i].file_id == atoi(arg1)){
-                sprintf(message,"+OK %d %d \r\n", client->files[i].file_id, client->files[i].file_size);
+                if (!client->files[i].to_delete) {
+                    sprintf(message,"+OK %d %d\r\n", client->files[i].file_id, client->files[i].file_size);
+                } else {
+                    sprintf(message,"-ERR message %d has been marked to delete\r\n", client->files[i].file_id);
+                }
                 write_to_client(client, message);
                 free(message);
                 return;
             }
         }
-        sprintf(message,"-ERR no such message, only %d messages in maildrop \r\n", client->file_cant);
+        sprintf(message,"-ERR no such message \r\n");
         write_to_client(client, message);
         free(message);
     }
 }
 
 void handleRetr(char * arg1, char * arg2, Client * client) {
-    printf("RETR command!\n");
+    for(unsigned int i = 0; i < client->file_cant; i++){
+        if(client->files[i].file_id == atoi(arg1) && !client->files[i].to_delete){
+            char * message = malloc(100);
+            sprintf(message, "+OK %d octets\r\n", client->files[i].file_size);
+
+            write_to_client(client, message);
+            write_to_client(client, read_file(client->files[i].file_name, client));     // TODO: HAY QUE PARSEAR ESTO!!!
+            write_to_client(client, "\r\n.\r\n");       // no se si hay que marcarle el \r\n de antes
+
+            free(message);
+            return;
+        }
+    }
+
+    write_to_client(client, "-ERR no such message\r\n");
 }
 
 void handleDele(char * arg1, char * arg2, Client * client) {
-    printf("DELE command!\n");
+    for(unsigned int i = 0; i < client->file_cant; i++){
+        if(client->files[i].file_id == atoi(arg1)){
+            char * message = malloc(100);
+
+            if (!client->files[i].to_delete) {
+                client->files[i].to_delete = true;
+                client->active_file_cant--;
+                client->active_file_size -= client->files[i].file_size;
+                sprintf(message, "+OK message %d deleted\r\n", client->files[i].file_id);
+            } else {
+                sprintf(message, "-ERR message %d already deleted\r\n", client->files[i].file_id);
+            }
+
+            write_to_client(client, message);
+            free(message);
+            return;
+        }
+    }
+
+    write_to_client(client, "-ERR no such message\r\n");
 }
 
 void handleNoop(char * arg1, char * arg2, Client * client) {
@@ -64,7 +106,17 @@ void handleNoop(char * arg1, char * arg2, Client * client) {
 }
 
 void handleRset(char * arg1, char * arg2, Client * client) {
-    printf("REST command!\n");
+    for(unsigned int i = 0; i < client->file_cant; i++){
+        if (client->files[i].to_delete) {
+            client->files[i].to_delete = false;
+            client->active_file_cant++;
+            client->active_file_size += client->files[i].file_size;
+        }
+    }
+    char * message = malloc(100);
+    sprintf(message, "+OK maildrop has %d messages (%d octets)\r\n", client->active_file_cant, client->active_file_size);
+    write_to_client(client, message);
+    free(message);   
 }
 
 void handleTop(char * arg1, char * arg2, Client * client) {

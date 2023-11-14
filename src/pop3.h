@@ -15,7 +15,7 @@ typedef struct file{
     char file_name[FILENAME_MAX];
     int file_id;
     int file_size;
-    bool deleted;
+    bool to_delete;
 } file;
 
 typedef enum client_state {
@@ -33,6 +33,8 @@ typedef struct Client {
     client_state state;
     file files[MAX_EMAILS];
     unsigned int file_cant;
+    unsigned int active_file_cant;
+    unsigned int active_file_size;
 } Client;
 
 
