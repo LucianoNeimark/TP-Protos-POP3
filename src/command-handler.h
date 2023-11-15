@@ -15,7 +15,7 @@ typedef struct {
     CommandHandler handler;
 } CommandInfo;
 
-void executeCommand(pop3cmd_parser * p, Client * client);
+client_state executeCommand(pop3cmd_parser * p, Client * client);
 
 
 #endif

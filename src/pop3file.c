@@ -1,18 +1,6 @@
 #include "pop3file.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include "args.h"
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include<sys/types.h>
-#include <sys/stat.h>
-
 
 #define MAX_SIZE_PATH 256
-
-
 
 static int get_path(char * path, char *file_name) {
     return snprintf(path, MAX_SIZE_PATH, "%s%s%s", args->directory, "/", file_name);
@@ -46,6 +34,7 @@ int populate_array(Client * client){
     }
 
     int i = 0;
+    client->active_file_size = 0;
     struct dirent * file_iter;
     while((file_iter = readdir(direc)) != NULL) {
 
@@ -71,8 +60,6 @@ int populate_array(Client * client){
     free(f);
     return 1;
 }
-
-#include <fcntl.h>
 
 char* read_file(char *file_name, Client * client) {
     char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
@@ -109,4 +96,15 @@ char* read_file(char *file_name, Client * client) {
     close(file_descriptor);
 
     return file_content;
+}
+
+int remove_file(char * file_name, Client * client) {
+    char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
+    get_file_path(file_path, args->directory, client->name, file_name);
+
+    int ret = remove(file_path);
+
+    free(file_path);
+
+    return ret;
 }

@@ -21,7 +21,8 @@ typedef struct file{
 typedef enum client_state {
     AUTHORIZATION,
     TRANSACTION,
-    UPDATE
+    UPDATE,
+    CLOSED
 } client_state;
 
 typedef struct Client {
@@ -36,11 +37,6 @@ typedef struct Client {
     unsigned int active_file_cant;
     unsigned int active_file_size;
 } Client;
-
-
-
-
-
 
 #endif // POP3_H
 

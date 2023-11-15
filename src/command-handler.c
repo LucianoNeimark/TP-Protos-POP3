@@ -8,9 +8,42 @@ void write_to_client(Client * client, char * message){
     sock_blocking_write(client->fd, client->serverBuffer);
 }
 
+void handleQuitNonAuth(char * arg1, char * arg, Client * client) {
+    write_to_client(client, "+OK POP3 server signing off\r\n");
+    
+    client->state = CLOSED;
+}
 
-void handleQuit(char * arg1, char * arg, Client * client) {
-    printf("QUIT command!\n");
+
+void handleQuitAuth(char * arg1, char * arg, Client * client) {
+    client->state = UPDATE;
+
+    int error_removing = 0;
+    for(unsigned int i = 0; !error_removing && i < client->file_cant; i++){
+        if(client->files[i].to_delete){
+            error_removing = remove_file(client->files[i].file_name, client);
+            if (!error_removing) {
+                client->file_cant--;
+            }
+        }
+    }
+
+    if (error_removing) {
+        write_to_client(client, "-ERR some deleted messages not removed\r\n");
+        return;
+    }
+
+    char * message = malloc(100);
+    if (client->file_cant == 0) {
+        sprintf(message, "+OK POP3 server signing off (maildrop empty)\r\n");
+    } else {
+        sprintf(message, "+OK POP3 server signing off (%d message%s left)\r\n", client->file_cant, client->file_cant == 1? "":"s");
+    }
+
+    write_to_client(client, message);
+    free(message);
+
+    client->state = CLOSED;
 }
 
 void handleStat(char * arg1, char * arg2, Client * client) {
@@ -119,14 +152,6 @@ void handleRset(char * arg1, char * arg2, Client * client) {
     free(message);   
 }
 
-void handleTop(char * arg1, char * arg2, Client * client) {
-    printf("TOP command!\n");
-}
-
-void handleUidl(char * arg1, char * arg2, Client * client) {
-    printf("UIDL command!\n");
-}
-
 void handleUser(char * arg1, char * arg2, Client * client) {
 
     // Send +OK message
@@ -154,7 +179,6 @@ void handlePass(char * arg1, char * arg2, Client * client) {
     } else if (client->name == NULL) {
         write_to_client(client, "-ERR No username given.\r\n");
     } else {
-        // printf("Args->users? %s\n", args->users);
         if (check_username(client->name, arg1, args->users)) {
             write_to_client(client, "+OK Logged in.\r\n");
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
@@ -167,6 +191,16 @@ void handlePass(char * arg1, char * arg2, Client * client) {
             write_to_client(client, "-ERR [AUTH] Authentication failed.\r\n");
         }
     }
+}
+
+
+// estos son opcionales!!
+void handleTop(char * arg1, char * arg2, Client * client) {
+    printf("TOP command!\n");
+}
+
+void handleUidl(char * arg1, char * arg2, Client * client) {
+    printf("UIDL command!\n");
 }
 
 void handleApop(char * arg1, char * arg2, Client * client) {
@@ -218,7 +252,7 @@ void handleCapaAuth(char * arg1, char * arg2, Client * client) {
 // };
 
 CommandInfo nonAuthTable[] = {
-    {QUIT, handleQuit},
+    {QUIT, handleQuitNonAuth},
     {USER, handleUser},
     {PASS, handlePass},
     {TOP, handleTop},
@@ -229,7 +263,7 @@ CommandInfo nonAuthTable[] = {
 
 
 CommandInfo authTable[] = {
-    {QUIT, handleQuit},
+    {QUIT, handleQuitAuth},
     {STAT, handleStat},
     {LIST, handleList},
     {RETR, handleRetr},
@@ -256,20 +290,22 @@ CommandInfo * getTable(client_state state) {
     }
 }
 
-void executeCommand(pop3cmd_parser * p, Client * client) {
+client_state executeCommand(pop3cmd_parser * p, Client * client) {
     
     CommandInfo *commandTable = getTable(client->state);
     
     int i = 0;
-    while(commandTable[i].handler != NULL){
+    bool found = false;
+    while(!found && commandTable[i].handler != NULL){
         if(commandTable[i].command == p->state){
             commandTable[i].handler(p->arg1, p->arg2, client);
-            return;
+            found = true;
         }
         i++;
     }
-    write_to_client(client, "-ERR Unknown command.\r\n");
+    if (!found) write_to_client(client, "-ERR Unknown command.\r\n");
 
+    return client->state;
     // for (size_t i = 0; i < sizeof(commandTable) / sizeof(commandTable[0]); i++) {
     //     if (commandTable[i].command == p->state) {
     //         commandTable[i].handler(p->arg1, p->arg2);
