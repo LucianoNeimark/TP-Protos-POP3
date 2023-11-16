@@ -1,9 +1,0 @@
-# make and build files
-*.lst
-*.o
-*.eep
-*.lss
-*.map
-*.sym
-pop3d
-*.idea
