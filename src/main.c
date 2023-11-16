@@ -92,19 +92,33 @@ static void pop3_handle_connection(int fd, const struct sockaddr *caddr) {
         do {
             uint8_t *ptr = buffer_write_ptr(&clientBuf, &buffsize);
             n = recv(client->fd, ptr, buffsize, 0); 
-            if(n > 0) {
-                buffer_write_adv(&clientBuf, n); 
-                /* const enum pop3cmd_state st = */ pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
-                if(pop3cmd_parser.finished) {
-                  current_state = executeCommand(&pop3cmd_parser, client);
-                  parser_reset(&pop3cmd_parser);
-                } else {
-                  printf("Not finished\n");
-                }
 
-            } else {
-                break;
-            }   
+            buffer_write_adv(&clientBuf, n);
+            
+            while(buffer_can_read(&clientBuf)) /*&& buffer_fits(serverBuffer, free_buffer_space))*/ {
+              printf("%s\n", clientBuf.read);
+              pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error); // vuelvo con el comando ya calculado.
+              if (pop3cmd_parser.finished) {
+                current_state = executeCommand(&pop3cmd_parser, client);
+                parser_reset(&pop3cmd_parser);
+              }
+            }
+
+
+
+            // if(n > 0) {
+            //     buffer_write_adv(&clientBuf, n); 
+            //     /* const enum pop3cmd_state st = */ pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
+            //     if(pop3cmd_parser.finished) {
+            //       current_state = executeCommand(&pop3cmd_parser, client);
+            //       parser_reset(&pop3cmd_parser);
+            //     } else {
+            //       printf("Not finished\n");
+            //     }
+
+            // } else {
+            //     break;
+            // }   
         } while(current_state != CLOSED);
         // if(!pop3cmd_is_done(pop3cmd_parser.state, &error)) {
         //     error = true;

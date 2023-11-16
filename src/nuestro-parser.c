@@ -20,6 +20,7 @@ pop3cmd_parser * parser_init(void) {
 
 
 void process_buffer(pop3cmd_parser * p) {
+    printf("line: [%s]\n",p->line);
     if (p->state == UNDEF) {
         if (strcmp(p->line, "QUIT") == 0) {
             p->state = QUIT;
@@ -67,13 +68,17 @@ pop3cmd_state parser_feed(pop3cmd_parser * p, uint8_t c) {
     }
     
     switch (c) { 
+        
         case ' ':
+            printf("ESPACIO\n");
             process_buffer(p);
             memset(p->line, 0, p->line_size);
             p->line_size = 0;
             break;
         case '\n':
+            printf("BARRAN\n");
             if (p->line_size > 0 && p->line[p->line_size-1] == '\r') {
+                printf("BARRAR\n");
                 p->line[--p->line_size] = 0;
                 process_buffer(p);
             } else {

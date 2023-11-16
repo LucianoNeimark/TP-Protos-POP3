@@ -290,9 +290,11 @@ CommandInfo * getTable(client_state state) {
     }
 }
 
-client_state executeCommand(pop3cmd_parser * p, Client * client) {
+client_state executeCommand(pop3cmd_parser * p, Client * client) {    
     
     CommandInfo *commandTable = getTable(client->state);
+
+    printf("command: %d\n", p->state);
     
     int i = 0;
     bool found = false;
@@ -304,14 +306,6 @@ client_state executeCommand(pop3cmd_parser * p, Client * client) {
         i++;
     }
     if (!found) write_to_client(client, "-ERR Unknown command.\r\n");
-
     return client->state;
-    // for (size_t i = 0; i < sizeof(commandTable) / sizeof(commandTable[0]); i++) {
-    //     if (commandTable[i].command == p->state) {
-    //         commandTable[i].handler(p->arg1, p->arg2);
-    //         return;
-    //     }
-       
-    // }
-    // printf("Unknown command.\n");
+   
 }
