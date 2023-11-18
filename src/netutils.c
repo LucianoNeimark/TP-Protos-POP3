@@ -56,7 +56,7 @@ sockaddr_to_human(char *buff, const size_t buffsize,
 
 int
 sock_blocking_write(const int fd, buffer *b) {
-        int  ret = 0;
+    int  ret = 0;
     ssize_t  nwritten;
 	 size_t  n;
 	uint8_t *ptr;

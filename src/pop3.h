@@ -8,6 +8,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "buffer.h"
+#include "nuestro-parser.h"
+#include "netutils.h"
+#include "selector.h"
 
 #define MAX_EMAILS 10
 
@@ -27,16 +30,26 @@ typedef enum client_state {
 
 typedef struct Client {
     uint32_t fd;
+
     struct buffer* serverBuffer;
     struct buffer* clientBuffer;
+
+    struct pop3cmd_parser * parser;
+
     char * name;
     char * password;
+
     client_state state;
     file files[MAX_EMAILS];
     unsigned int file_cant;
     unsigned int active_file_cant;
     unsigned int active_file_size;
 } Client;
+
+void pop3Read(struct selector_key *key);
+void pop3Write(struct selector_key *key);
+void pop3Block(struct selector_key *key);
+void pop3Close(struct selector_key *key);
 
 #endif // POP3_H
 

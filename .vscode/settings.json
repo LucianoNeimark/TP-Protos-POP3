@@ -2,6 +2,13 @@
     "files.associations": {
         "args.h": "c",
         "command-handler.h": "c",
-        "pop3.h": "c"
+        "pop3.h": "c",
+        "array": "c",
+        "span": "c",
+        "string": "c",
+        "string_view": "c",
+        "vector": "c",
+        "stdio.h": "c",
+        "random": "c"
     }
 }

@@ -2,9 +2,17 @@
 
 //FIXME mover a alguna libreria o algo que tenga sentido. Aca suelto es horrible
 void write_to_client(Client * client, char * message){
+
+    
+
+
     size_t message_len = strlen(message);
+
     memcpy(client->serverBuffer->data, message, message_len);
     buffer_write_adv(client->serverBuffer, message_len);
+
+    //seteo intencion. Si no se puede escribir, se va a volver a llamar a esta funcion
+
     sock_blocking_write(client->fd, client->serverBuffer);
 }
 
