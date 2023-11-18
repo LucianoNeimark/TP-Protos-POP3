@@ -6,14 +6,14 @@ void write_to_client(Client * client, char * message){
     
 
 
-    size_t message_len = strlen(message);
+    // size_t message_len = strlen(message);
 
-    memcpy(client->serverBuffer->data, message, message_len);
-    buffer_write_adv(client->serverBuffer, message_len);
+    // memcpy(client->serverBuffer->data, message, message_len);
+    // buffer_write_adv(client->serverBuffer, message_len);
 
-    //seteo intencion. Si no se puede escribir, se va a volver a llamar a esta funcion
+    // //seteo intencion. Si no se puede escribir, se va a volver a llamar a esta funcion
 
-    sock_blocking_write(client->fd, client->serverBuffer);
+    // sock_blocking_write(client->fd, client->serverBuffer);
 }
 
 void handleQuitNonAuth(char * arg1, char * arg, Client * client) {

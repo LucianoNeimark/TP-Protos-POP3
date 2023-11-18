@@ -31,8 +31,12 @@ typedef enum client_state {
 typedef struct Client {
     uint32_t fd;
 
-    struct buffer* serverBuffer;
-    struct buffer* clientBuffer;
+    struct buffer serverBuffer;
+    uint8_t serverBuffer_data[BUFFER_SIZE];
+    size_t serverBuffer_size;
+
+    struct buffer clientBuffer;
+    uint8_t clientBuffer_data[BUFFER_SIZE];
 
     struct pop3cmd_parser * parser;
 

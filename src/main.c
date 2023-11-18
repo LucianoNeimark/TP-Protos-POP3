@@ -71,37 +71,50 @@ struct connection {
 
 static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ struct selector_key *key) {
 
+  printf("handlecone\n");
+
   struct sockaddr_storage client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
 
   int client_fd = accept(key->fd, (struct sockaddr *)&client_addr, &client_addr_len);
+  printf("client_fd: %d\n key_fd: %d\n", client_fd, key->fd);
+
+  if (client_fd == -1) {
+    printf("%s\n", "Error al aceptar cliente");
+  }
 
   //creo el client
-  Client *client = malloc(sizeof(Client));
+  Client *client = calloc(1, (sizeof(struct Client)));
+
+  if (client == NULL) {printf("%s\n", "Error al crear cliente");}
+
   client->name = NULL;
-  client->fd = key->fd;
+  client->fd = client_fd;
   client->state = AUTHORIZATION;
   client->parser = pop3cmd_parser_init();
 
+  buffer_init(&client->serverBuffer, BUFFER_SIZE, client->serverBuffer_data);
 
-  struct buffer serverBuf;
-  buffer *serverBuffer = &serverBuf;
-  uint8_t serverDirectBuff[1024];
-  buffer_init(&serverBuf, N(serverDirectBuff), serverDirectBuff);
+  buffer_init(&client->clientBuffer, BUFFER_SIZE, client->clientBuffer_data);
 
-  struct buffer clientBuf;
-  uint8_t clientDirectBuff[1024];
-  buffer_init(&clientBuf, N(clientDirectBuff), clientDirectBuff);
+  // client->serverBuffer = serverBuffer;
+  // client->clientBuffer = &clientBuf;
+   char *s = "+OK POP3 server ready\r\n";
 
-  client->serverBuffer = serverBuffer;
-  client->clientBuffer = &clientBuf;
+    // Since the output buffer is empty, we can write directly to it
+    for (int i=0; s[i]; i++) {
+        buffer_write(&client->serverBuffer, s[i]);
+    }
 
-  // enviar saludo
-  memcpy(serverDirectBuff, "+OK POP3 server ready\r\n", 23);
-  buffer_write_adv(serverBuffer, 23);
+    client->serverBuffer_size = strlen(s);
+
+  // memcpy(&client->serverBuffer.data, "hola", 5);
+  // buffer_write_adv(&client->serverBuffer, 5);
+  // sock_blocking_write(client_fd, &client->serverBuffer);
 
   if (selector_fd_set_nio(client_fd) == -1) {
     // goto; //TODO
+    printf("%s\n", "Error al setear nio\n");
   }
 
   selector_status status = selector_register(key->s, client_fd, &pop3Handlers, OP_WRITE, client);
@@ -120,55 +133,55 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
 return;
   
 
-    // leemos comando
-    {
-        bool error = false;
-        size_t buffsize;
-        ssize_t n;
-        struct pop3cmd_parser pop3cmd_parser = *pop3cmd_parser_init();
-        client_state current_state;
+    // // leemos comando
+    // {
+    //     bool error = false;
+    //     size_t buffsize;
+    //     ssize_t n;
+    //     struct pop3cmd_parser pop3cmd_parser = *pop3cmd_parser_init();
+    //     client_state current_state;
         
-        do {
-            uint8_t *ptr = buffer_write_ptr(&clientBuf, &buffsize);
-            // printf("aca sigo\n");
-            n = recv(client->fd, ptr, buffsize, 0); 
-            buffer_write_adv(&clientBuf, n);
+    //     do {
+    //         uint8_t *ptr = buffer_write_ptr(&client->clientBuffer, &buffsize);
+    //         // printf("aca sigo\n");
+    //         n = recv(client->fd, ptr, buffsize, 0); 
+    //         buffer_write_adv(&client->clientBuffer, n);
             
-            if (n>0){
-              while(buffer_can_read(&clientBuf)) /*&& buffer_fits(serverBuffer, free_buffer_space))*/ {
-                printf("%s\n", clientBuf.read);
-                pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error); // vuelvo con el comando ya calculado.
-                if (pop3cmd_parser.finished) {
-                  current_state = executeCommand(&pop3cmd_parser, client);
-                  parser_reset(&pop3cmd_parser);
-                }
-              }
-            }
+    //         if (n>0){
+    //           while(buffer_can_read(&client->clientBuffer)) /*&& buffer_fits(serverBuffer, free_buffer_space))*/ {
+    //             printf("%s\n", client->clientBuffer.read);
+    //             pop3cmd_consume(&client->clientBuffer, &pop3cmd_parser, &error); // vuelvo con el comando ya calculado.
+    //             if (pop3cmd_parser.finished) {
+    //               current_state = executeCommand(&pop3cmd_parser, client);
+    //               parser_reset(&pop3cmd_parser);
+    //             }
+    //           }
+    //         }
             
 
 
 
-            // if(n > 0) {
-            //     buffer_write_adv(&clientBuf, n); 
-            //     /* const enum pop3cmd_state st = */ pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
-            //     if(pop3cmd_parser.finished) {
-            //       current_state = executeCommand(&pop3cmd_parser, client);
-            //       parser_reset(&pop3cmd_parser);
-            //     } else {
-            //       printf("Not finished\n");
-            //     }
+    //         // if(n > 0) {
+    //         //     buffer_write_adv(&clientBuf, n); 
+    //         //     /* const enum pop3cmd_state st = */ pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
+    //         //     if(pop3cmd_parser.finished) {
+    //         //       current_state = executeCommand(&pop3cmd_parser, client);
+    //         //       parser_reset(&pop3cmd_parser);
+    //         //     } else {
+    //         //       printf("Not finished\n");
+    //         //     }
 
-            // } else {
-            //     break;
-            // }   
-        } while(current_state != CLOSED);
-        printf("Sali\n");
-        // if(!pop3cmd_is_done(pop3cmd_parser.state, &error)) {
-        //     error = true;
-        // }
-        // pop3cmd_parser_close(&pop3cmd_parser);
-        // return error;
-    }
+    //         // } else {
+    //         //     break;
+    //         // }   
+    //     } while(current_state != CLOSED);
+    //     printf("Sali\n");
+    //     // if(!pop3cmd_is_done(pop3cmd_parser.state, &error)) {
+    //     //     error = true;
+    //     // }
+    //     // pop3cmd_parser_close(&pop3cmd_parser);
+    //     // return error;
+    // }
 
     close(client->fd);
     free(client);
@@ -324,7 +337,7 @@ main( int argc,  char **argv) {
             .handle_block = NULL,
     };
 
-    selectStatus = selector_register(selector, server, &passiveHandler, OP_WRITE, NULL);
+    selectStatus = selector_register(selector, server, &passiveHandler, OP_READ, NULL);
     if(selectStatus != SELECTOR_SUCCESS) goto finally;
 
     while (!done) {
