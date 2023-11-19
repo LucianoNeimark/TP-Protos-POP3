@@ -39,6 +39,7 @@ typedef struct Client {
     struct buffer clientBuffer;
     uint8_t clientBuffer_data[BUFFER_SIZE];
 
+
     struct pop3cmd_parser * parser;
 
     char * name;
