@@ -1,0 +1,2 @@
+USER luciano\r\n
+PASS neimark\r\n

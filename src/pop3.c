@@ -1,6 +1,57 @@
 #include "pop3.h"
+#include "command-handler.h"
+
+
 
 void pop3Read(struct selector_key *key) {
+    struct Client *client = key->data;
+
+    client_state current_state;
+
+    size_t buffsize;
+
+    // IF COUNT < 0
+
+    size_t n;
+
+    do {
+
+        uint8_t *ptr = buffer_write_ptr(&client->clientBuffer, &buffsize);
+        n = recv(client->fd, ptr, buffsize, 0); 
+        buffer_write_adv(&client->clientBuffer, n);
+        bool error = false;
+
+
+        if (n>0) {
+            while (buffer_can_read(&client->clientBuffer)) {
+                pop3cmd_consume(&client->clientBuffer, client->parser, &error);
+                if (client->parser->finished) {
+                    current_state = executeCommand(client->parser, client);
+                    parser_reset(client->parser);
+                }
+            }
+            selector_set_interest_key(key, OP_WRITE);
+        }
+    } while (current_state!=CLOSED);
+
+    // do {
+    //     uint8_t *ptr = buffer_write_ptr(&client->clientBuffer, &buffsize);
+    //         // printf("aca sigo\n");
+    //         n = recv(client->fd, ptr, buffsize, 0); 
+    //         buffer_write_adv(&client->clientBuffer, n);
+            
+    //         if (n>0){
+    //           while(buffer_can_read(&client->clientBuffer)) /*&& buffer_fits(serverBuffer, free_buffer_space))*/ {
+    //             printf("%s\n", client->clientBuffer.read);
+    //             pop3cmd_consume(&client->clientBuffer, &pop3cmd_parser, &error); // vuelvo con el comando ya calculado.
+    //             if (pop3cmd_parser.finished) {
+    //               current_state = executeCommand(&pop3cmd_parser, client);
+    //               parser_reset(&pop3cmd_parser);
+    //             }
+    //           }
+    //         }
+
+
     recv(((Client *)(key->data))->fd, &((Client *)(key->data))->clientBuffer, BUFFER_SIZE, 0); 
     // tenemos que leer lo que tiene el server buffer
     printf("hola read\n");
@@ -8,21 +59,13 @@ void pop3Read(struct selector_key *key) {
     printf("chau read\n");
     // buffer_reset(((Client *)(key->data))->serverBuffer);
     // buffer_reset(((Client *)(key->data))->clientBuffer);
-    selector_set_interest_key(key, OP_WRITE);
+    // selector_set_interest_key(key, OP_WRITE);
 }
 
 void pop3Write(struct selector_key *key) {
-    printf("holaaaaaaaaai\n");
+    // printf("holaaaaxaaaaai\n");
 
     struct Client *client = key->data;
-
-    // size_t limit;
-    // buffer_read_ptr(&client->serverBuffer, &limit);
-
-    // // printf("holaaa\n");
-
-    // buffer_read_adv(&client->serverBuffer, 23);
-
     
     if (client->serverBuffer_size > 0) {
         size_t size = 0;
@@ -33,37 +76,6 @@ void pop3Write(struct selector_key *key) {
     }
 
     
-
-    // if (buffer_can_read(&client->serverBuffer)) {
-    //     selector_set_interest_key(key, OP_WRITE);
-    // }
-
-    // size_t message_len = strlen("hola");
-
-    // memcpy(&client->serverBuffer.data, "hola", 5);
-    // buffer_write_adv(&client->serverBuffer, 5);
-
-    //seteo intencion. Si no se puede escribir, se va a volver a llamar a esta funcion
-
-    // sock_blocking_write(client->fd, &client->serverBuffer);
-    
-
-
-    // size_t message_len = strlen(message);
-    // memcpy(client->serverBuffer->data, message, message_len);
-    // buffer_write_adv(client->serverBuffer, message_len);
-    // sock_blocking_write(client->fd, client->serverBuffer);
-
-
-    // tenemos que imprimir lo que tiene el server buffer
-    // printf("hola write\n");
-    // printf("serverBuffer: %s", ((Client *)(key->data))->serverBuffer->data);
-    // printf("fd: %d", ((Client *)(key->data))->fd);
-
-    // sock_blocking_write(((Client *)(key->data))->fd, ((Client *)(key->data))->serverBuffer);
-
-    
-    // printf("chau write\n");
     selector_set_interest_key(key, OP_READ);
     
 }

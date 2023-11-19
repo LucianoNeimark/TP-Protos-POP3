@@ -11,6 +11,7 @@
 #include "nuestro-parser.h"
 #include "netutils.h"
 #include "selector.h"
+#include "pop3cmd.h"
 
 #define MAX_EMAILS 10
 
