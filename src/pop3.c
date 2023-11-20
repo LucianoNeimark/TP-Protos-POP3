@@ -21,36 +21,45 @@ char * byte_stuffing(char* line) {
     if (line == NULL) {
         return NULL;
     }
-
+    printf("llegue1\n");
     size_t len = strlen(line);
+    printf("len: %zu\n", len);
     if (len == 0) {
-        char* empty_result = malloc(2);  
+        char* empty_result = malloc(3);  
         if (empty_result == NULL) {
             return NULL;  
         }
         strcpy(empty_result, "\r\n");
+        printf("%s", empty_result);
+        printf("llegue1.5\n");
         return empty_result;
     }
 
-    char* result = malloc(len+2);  
+    printf("llegue2\n");
+
+
+    char* result = malloc(len+4);  
     if (result == NULL) {
         return NULL;  
     }
+    printf("llegue3\n");
+
 
     size_t resultIndex = 0;
     for (size_t i = 0; i < len; ++i) {
-        if(i=0) {
+        if(i==0) {
             if (line[i] == '.') {
                 result[resultIndex++] = '.';
-                result[resultIndex++] = '.';
             }
-        } else {
-            result[resultIndex++] = line[i];
         }
+        result[resultIndex++] = line[i];
+    
     }
+    printf("llegue4\n");
+
 
     strcpy(result + resultIndex, "\r\n");
-
+    printf("llegue5\n");
     return result;
 }
 
@@ -112,12 +121,17 @@ void pop3ReadFile(struct selector_key* key){
     if (line == NULL) {
         // No more lines to read, indicate completion
         client->fileDoneReading = true;
+        // enviar /r/n./r/n
+        count = snprintf((char *)buffer, limit, ".\r\n");
+        buffer_write_adv(&client->serverBuffer, count);
+
 
     } else {
         // Append the line to the buffer
         char * byteStuffedLine = byte_stuffing(line);
+        printf("line: %s\n", byteStuffedLine);
         printf("line size: %lu\n", strlen(byteStuffedLine));
-        count = snprintf((char *)buffer, limit, "%s\r\n", byteStuffedLine);
+        count = snprintf((char *)buffer, limit, "%s", byteStuffedLine);
         buffer_write_adv(&client->serverBuffer, count);
        
         free(line); // Free the memory allocated by getline
@@ -135,7 +149,7 @@ void pop3WriteFile(struct selector_key* key) {
         char *rbuffer = (char *)buffer_read_ptr(&client->serverBuffer, &size);
         int bytes_read = (int)send(client->fd, rbuffer, size, 0);
         buffer_read_adv(&client->serverBuffer, bytes_read);
-         buffer_reset(&client->serverBuffer);
+        buffer_reset(&client->serverBuffer);
     }
 
 

@@ -154,12 +154,20 @@ char* read_first_line_file(char *file_name, Client * client){
     get_file_path(file_path, args->directory, client->name, file_name);
     
     if (client->fileState.file == NULL) {
+
+        
+
         // Open the file
         client->fileState.file = fopen(file_path, "r");
         if (client->fileState.file == NULL) {
             perror("Error opening file");
             return NULL;
         }
+
+        /// +OK
+        char * ok = malloc(sizeof(char) * 4);
+        strcpy(ok, "+OK");
+        return ok;
     }
 
     char *line = NULL;
