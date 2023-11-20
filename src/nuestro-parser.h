@@ -6,7 +6,7 @@
 #include <string.h>
 #include <stdint.h>
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 4096
 
 typedef enum pop3cmd_state {
     QUIT,
