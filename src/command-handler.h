@@ -1,12 +1,12 @@
 #ifndef COMMAND_HANDLER_H
 #define COMMAND_HANDLER_H
 
-#include "nuestro-parser.h"
 #include <stdio.h>
-#include "netutils.h"
 #include <string.h>
+#include "netutils.h"
 #include "args.h"
 #include "pop3file.h"
+#include "nuestro-parser.h"
 
 typedef void (*CommandHandler)(char * arg1, char * arg2, Client * client);
 

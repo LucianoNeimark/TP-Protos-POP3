@@ -1,17 +1,17 @@
 #include "pop3file.h"
 
-#define MAX_SIZE_PATH 256
+#define MAX_SIZE_PATH 1024      // TODO: 256 -> 1024 para que compile
 
 static int get_path(char * path, char *file_name) {
-    return snprintf(path, MAX_SIZE_PATH, "%s%s%s", args->directory, "/", file_name);
+    return snprintf(path, MAX_SIZE_PATH, "%s/%s", args->directory, file_name);
 }
 
 static int get_user_path(char * path, char *file_name, char * user) {
-    return snprintf(path, MAX_SIZE_PATH, "%s%s%s", file_name, "/", user);
+    return snprintf(path, MAX_SIZE_PATH, "%s/%s", file_name, user);
 }
 
 static int get_file_path(char * dest, char * path, char * user, char *file_name) {
-    return snprintf(dest, MAX_SIZE_PATH, "%s%s%s%s%s", path, "/", user, "/", file_name);
+    return snprintf(dest, MAX_SIZE_PATH, "%s/%s/%s", path, user, file_name);
 }
 
 

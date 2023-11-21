@@ -22,22 +22,6 @@ port(const char *s) {
 }
 
 static void
-user(char *s, struct users *user) {
-    char *p = strchr(s, ':');
-    if(p == NULL) {
-        fprintf(stderr, "password not found\n");
-        exit(1);
-    } else {
-        *p = 0;
-        p++;
-        user->name = s;
-        user->pass = p;
-    }
-
-}
-
-
-static void
 directory(char * dest, char * src){
 
     printf("src: %s\n",src);
@@ -59,9 +43,9 @@ usage(const char *progname) {
         "\n"
         "   -h                 Imprime la ayuda y termina.\n"
         "   -l <POP3 addr>     Dirección donde servirá el servidor POP3.\n"
-        // "   -L <conf  addr>  Dirección donde servirá el servicio de management.\n"
+        "   -L <conf addr>     Dirección donde servirá el servicio de management.\n"
         "   -p <POP3 port>     Puerto entrante conexiones POP3.\n"
-        // "   -P <conf port>   Puerto entrante conexiones configuracion\n"
+        "   -P <conf port>     Puerto entrante conexiones configuracion\n"
         "   -u <name>:<pass>   Usuario y contraseña de usuario que puede usar el proxy. Hasta 10.\n"
         "   -v                 Imprime información sobre la versión versión y termina.\n"
         "   -d <path-to-mails> Especifica la carpeta donde se guardarán los usuarios y sus mails.\n"
@@ -77,8 +61,8 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
     args->POP3_addr = "127.0.0.1";
     args->POP3_port = 1110;
 
-    // args->mng_addr   = "127.0.0.1";
-    // args->mng_port   = 8080;
+    args->mng_addr   = "127.0.0.1";
+    args->mng_port   = 8080;
 
     args->disectors_enabled = true;
 
@@ -108,27 +92,20 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
             case 'l':
                 args->POP3_addr = optarg;
                 break;
-            // case 'L':
-            //     args->mng_addr = optarg;
-            //     break;
+            case 'L':
+                args->mng_addr = optarg;
+                break;
             case 'N':
                 args->disectors_enabled = false;
                 break;
             case 'p':
                 args->POP3_port = port(optarg);
                 break;
-            // case 'P':
-            //     args->mng_port   = port(optarg);
-            //     break;
+            case 'P':
+                args->mng_port   = port(optarg);
+                break;
             case 'u':
-                if(nusers >= MAX_USERS) {
-                    fprintf(stderr, "maximum number of command line users reached: %d.\n", MAX_USERS);
-                    exit(1);
-                } else {
-                    printf("user: %s\n", optarg);
-                    user(optarg, args->users + nusers);
-                    nusers++;
-                }
+                user_add(optarg);
                 break;
             case 'v':
                 version();
@@ -152,21 +129,4 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
         fprintf(stderr, "\n");
         exit(1);
     }
-}
-
-bool
-check_username(char * username, char* password, struct users *users){
-    //check if in the users structure the username matches with the password
-    for(size_t i = 0; i < args->nusers; i++){
-        printf("username: %s\n", username);
-        printf("password: %s\n", password);
-        
-        if(strcmp(username, users[i].name) == 0){
-            if(strcmp(password, users[i].pass) == 0){
-                return true;
-            }
-        }
-    }
-    return false;
-    
 }

@@ -11,6 +11,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -22,6 +23,8 @@
 #include "tests.h"
 #include "pop3cmd.h"
 #include "command-handler.h"
+#include "include/manager_handler.h"
+#include "include/metrics.h"  // temporal (hasta que corramos pop3_handle_connection)
 #include "args.h"
 #include "selector.h"
 
@@ -29,6 +32,7 @@
 
 static bool done = false;
 
+static int setupManagerSocket(char *addr, int port);
 
 //llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
 // Donde escribiamos ahora copiamos al buffer y seteamos la intencion
@@ -122,10 +126,8 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
     // goto handle_error;
   }
 
-
+  metrics_new_connection();
    
-    
-
     // holaquieroimprimir
     // sock_blocking_write(client->fd, serverBuffer); ANTES 
 
@@ -238,11 +240,6 @@ return;
 //   return 0;
 // }
 
-
-
-
-
-
 int
 main( int argc,  char **argv) {
 
@@ -300,10 +297,6 @@ main( int argc,  char **argv) {
     selector_status selectStatus = selector_init(&init);
     if (selectStatus != SELECTOR_SUCCESS) goto finally;
 
-    
-
-    fprintf(stdout, "Listening on TCP port %d\n", args->POP3_port);
-
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
 
@@ -317,6 +310,11 @@ main( int argc,  char **argv) {
         goto finally;
     }
     
+    fprintf(stdout, "Listening on TCP %s:%d\n", args->POP3_addr, args->POP3_port);
+
+    int managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
+    if (managerSocket == -1) goto finally;
+
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.
     signal(SIGTERM, sigterm_handler);
@@ -338,6 +336,16 @@ main( int argc,  char **argv) {
     };
 
     selectStatus = selector_register(selector, server, &passiveHandler, OP_READ, NULL);
+    if(selectStatus != SELECTOR_SUCCESS) goto finally;
+
+    const fd_handler managerHandler = {
+            .handle_read = manager_handle_connection, 
+            .handle_write = NULL, 
+            .handle_close = NULL, 
+            .handle_block = NULL
+    };
+
+    selectStatus = selector_register(selector, managerSocket, &managerHandler, OP_READ, NULL);
     if(selectStatus != SELECTOR_SUCCESS) goto finally;
 
     while (!done) {
@@ -363,4 +371,40 @@ main( int argc,  char **argv) {
         close(server);
     }
     return ret;
+}
+
+static int setupManagerSocket(char *addr, int port) {
+
+    const int managerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    
+    if(managerSocket < 0) {
+        fprintf(stdout, "Error creating manager socket: %s\n", strerror(errno));
+        goto manager_error;
+    }
+
+    // Para reusar el socket
+    setsockopt(managerSocket, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
+
+    struct sockaddr_in manager_addr;
+    memset(&manager_addr, 0, sizeof(manager_addr));
+    manager_addr.sin_family     = AF_INET;
+    manager_addr.sin_port      = htons(port);
+
+    if (inet_pton(AF_INET, addr, &manager_addr.sin_addr) <= 0) {
+        fprintf(stdout, "Error parsing manager address: %s\n", strerror(errno));
+        goto manager_error;
+    }
+
+    if(bind(managerSocket, (struct sockaddr*) &manager_addr, sizeof(manager_addr)) < 0) {
+        fprintf(stdout, "Error binding manager socket: %s\n", strerror(errno));
+        goto manager_error;
+    }
+
+    fprintf(stdout, "Manager listening on UDP %s:%d\n", addr, port);
+
+    return managerSocket;
+
+    manager_error:
+    if (managerSocket != -1) close(managerSocket);
+    return -1;
 }

@@ -182,7 +182,7 @@ void handlePass(char * arg1, char * arg2, Client * client) {
     } else if (client->name == NULL) {
         write_to_client(client, "-ERR No username given.\r\n");
     } else {
-        if (check_username(client->name, arg1, args->users)) {
+        if (user_check_valid(client->name, arg1)) {
             write_to_client(client, "+OK Logged in.\r\n");
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
             memcpy(client->password, arg1, strlen(arg1) + 1);

@@ -57,9 +57,10 @@ void pop3Write(struct selector_key *key) {
     if (buffer_can_read(&client->serverBuffer)) {
         size_t size = 0;
         char *rbuffer = (char *)buffer_read_ptr(&client->serverBuffer, &size);
-        int bytes_read = (int)send(client->fd, rbuffer, size, 0);
-        buffer_read_adv(&client->serverBuffer, bytes_read);
-        // client->serverBuffer_size -= bytes_read;
+        int bytes_sent = (int)send(client->fd, rbuffer, size, 0);
+        metrics_send_bytes(bytes_sent);
+        buffer_read_adv(&client->serverBuffer, bytes_sent);
+        // client->serverBuffer_size -= bytes_sent;
     }
 
     if (client->state == CLOSED){
@@ -79,5 +80,6 @@ void pop3Block(struct selector_key *key) {
 }
 
 void pop3Close(struct selector_key *key) {
+    metrics_close_connection();
     close(key->fd);
 }

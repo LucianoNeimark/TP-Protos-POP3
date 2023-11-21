@@ -12,6 +12,7 @@
 #include "netutils.h"
 #include "selector.h"
 #include "pop3cmd.h"
+#include "include/metrics.h"
 
 #define MAX_EMAILS 10
 
@@ -34,7 +35,7 @@ typedef struct Client {
 
     struct buffer serverBuffer;
     uint8_t serverBuffer_data[BUFFER_SIZE];
-    size_t serverBuffer_size;
+    size_t serverBuffer_size;       // TODO: se actualiza pero no se usa!!
 
     struct buffer clientBuffer;
     uint8_t clientBuffer_data[BUFFER_SIZE];
