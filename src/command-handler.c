@@ -2,11 +2,11 @@
 #include "pop3.h"
 //FIXME mover a alguna libreria o algo que tenga sentido. Aca suelto es horrible
 void write_to_client(Client * client, char * message){
-    printf("ENTRE AL WRITE TO CLIENT\n");
     size_t limit;
     uint8_t *buffer;
     ssize_t count;
 
+    printf("Sending: %s\n", message);
     buffer = buffer_write_ptr(&client->serverBuffer, &limit);
     count = snprintf((char *) buffer, limit, "%s", message);
     buffer_write_adv(&client->serverBuffer, count);
@@ -74,12 +74,10 @@ void handleList(char * arg1, char * arg2, struct selector_key* key) {
         sprintf(message,"+OK %d messages (%d octets)\r\n", client->active_file_cant, client->active_file_size);
         write_to_client(client, message);
         for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
-            printf("El file esta en to_delete: %d\n", client->files[i].to_delete);
             free(message);
             message = malloc(100);
             if (!client->files[i].to_delete) {
                 sprintf(message,"%d %d\r\n", client->files[i].file_id, client->files[i].file_size);
-                printf("ACAAAAA%s\n", message);
                 write_to_client(client, message);
             }
         }
@@ -112,12 +110,10 @@ void handleRetr(char * arg1, char * arg2, struct selector_key* key) {
             sprintf(message, "+OK %d octets\r\n", client->files[i].file_size);
             write_to_client(client, message);
             client->activeFile = client->files[i].file_name;
-            printf("seteando las funciones de files...\n");
             client->read = pop3ReadFile; // Seteo que ahora voy a leer archivo y no del usuario.
             client->write = pop3WriteFile;
             client->fileDoneReading = false;
-            printf("Ya las setee\n");
-            buffer_reset(&client->serverBuffer);
+            // buffer_reset(&client->serverBuffer);
             pop3ReadFile(key);
             free(message);
             return;
@@ -317,13 +313,13 @@ client_state executeCommand(pop3cmd_parser * p, struct selector_key* key) {
     struct Client *client = key->data;
     CommandInfo *commandTable = getTable(client->state);
 
-    printf("command: %d\n", p->state);
     
     int i = 0;
     bool found = false;
     while(!found && commandTable[i].handler != NULL){
         if(commandTable[i].command == p->state){
             commandTable[i].handler(p->arg1, p->arg2, key);
+            
             found = true;
         }
         i++;

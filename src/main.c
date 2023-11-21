@@ -71,13 +71,11 @@ struct connection {
 
 static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ struct selector_key *key) {
 
-  printf("handlecone\n");
 
   struct sockaddr_storage client_addr;
   socklen_t client_addr_len = sizeof(client_addr);
 
   int client_fd = accept(key->fd, (struct sockaddr *)&client_addr, &client_addr_len);
-  printf("client_fd: %d\n key_fd: %d\n", client_fd, key->fd);
 
   if (client_fd == -1) {
     printf("%s\n", "Error al aceptar cliente");
