@@ -66,6 +66,15 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
 
     uint8_t *buffer2 = buffer_write_ptr(&client->clientBuffer, &limit);
     size_t bytes_read = recv(client->fd, buffer2, limit, 0x4000); // leo lo que me manda el cliente
+
+    if (bytes_read == 0 && !buffer_can_read(&client->clientBuffer)) { 
+        // Example: Set state to CLOSED and unregister the client
+        client->state = CLOSED;
+        selector_unregister_fd(key->s, client->fd);
+        // close(client->fd);
+        return ERROR_STATE;
+    }
+
     
     printf("bytes read: %zu\n", bytes_read);
 
@@ -88,16 +97,8 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
     if (!buffer_can_read(&client->serverBuffer)) {
         selector_set_interest_key(key, OP_READ);
         return READ;
-    }else {
-        return WRITE;
     }
 
-    if (bytes_read == 0) { 
-        // Example: Set state to CLOSED and unregister the client
-        client->state = CLOSED;
-        selector_unregister_fd(key->s, client->fd);
-        return ERROR_STATE;
-    }
 
     return WRITE;
 
@@ -174,7 +175,7 @@ unsigned int pop3WriteCommand(struct selector_key *key) {
     if(buffer_can_read(&client->clientBuffer)){
         printf("puedo leer del cliente\n");
         selector_set_interest_key(key, OP_READ);
-        return pop3ReadCommand(key);
+        return READ;
     }
     selector_set_interest_key(key, OP_READ);
     return READ;
@@ -215,4 +216,11 @@ void pop3Block(struct selector_key *key) {
 
 void pop3Close(struct selector_key *key) {
    close(key->fd);
+   printf("Cerrando el socket\n");
+//    exit(1);
+}
+
+void pop3Error(unsigned int n, struct selector_key *key) {
+    selector_unregister_fd(key->s, key->fd);
+        close(key->fd);
 }

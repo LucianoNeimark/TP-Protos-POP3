@@ -75,6 +75,7 @@ unsigned int pop3ReadCommand(struct selector_key* key);
 void pop3ReadFile(struct selector_key* key);
 void pop3WriteFile(struct selector_key* key);
 unsigned int pop3WriteCommand(struct selector_key* key);
+void pop3Error(unsigned int n, struct selector_key *key);
 
 
  char * byte_stuffing(char* line);
@@ -90,6 +91,7 @@ static const struct state_definition states [] = {
     },
     {
         .state = ERROR_STATE,
+        .on_arrival = pop3Error,
     }
 };
 

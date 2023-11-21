@@ -9,6 +9,7 @@
         "string_view": "c",
         "vector": "c",
         "stdio.h": "c",
-        "random": "c"
+        "random": "c",
+        "stm.h": "c"
     }
 }
