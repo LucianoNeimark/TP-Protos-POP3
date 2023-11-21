@@ -8,6 +8,7 @@
 //Se llama a la funcion que tenga guardado el cliente adentro. El caso default es el de leer comando salvo que se recurra a un retr un list que son multilinea
 // y retr requiere manipulacion de la salida.
 void pop3Read(struct selector_key *key) {
+    printf("Entre al read\n");
     struct Client *client = key->data;
     stm_handler_read(&client->stm, key);
 }
@@ -57,55 +58,71 @@ char * byte_stuffing(char* line) {
 
 
 unsigned int pop3ReadCommand(struct selector_key* key) {
+    printf("Entre al read command\n");
     struct Client *client = key->data;
-
-    //Primero tengo que leer lo que escrinio el usuario y hacerlo "persistir" en su buffer interno asi cuando se vuelve a llamar sigue todo ok.
-
-    size_t limit;       // Max we can read from buffer
-   // Pointer to read position in buffer
-
+    size_t limit;      
     uint8_t *buffer2 = buffer_write_ptr(&client->clientBuffer, &limit);
     size_t bytes_read = recv(client->fd, buffer2, limit, 0x4000); // leo lo que me manda el cliente
+    buffer_write_adv(&client->clientBuffer, bytes_read); // avanzo el puntero de escritura
+
+    
 
     if (bytes_read == 0 && !buffer_can_read(&client->clientBuffer)) { 
-        // Example: Set state to CLOSED and unregister the client
+        printf("El cliente se desconecto\n");
         client->state = CLOSED;
         selector_unregister_fd(key->s, client->fd);
-        // close(client->fd);
         return ERROR_STATE;
     }
 
+    printf("Antes del parse command In buffer\n");
+
+    stm_state_t res =  parseCommandInBuffer(key);
+
+    printf("Despues del parse command In buffer\n");
+
+
+    if (res == ERROR_STATE) {
+        return ERROR_STATE;
+    }
+
+  
+    if (buffer_can_read(&client->serverBuffer)) { // Si despues de parsear el comando tengo algo para enviarle hay que escribir
+        selector_set_interest_key(key, OP_WRITE);
+        printf("Tengo algo para enviarle al cliente\n");
+        return res;
+    }
+
+    return res;
+
+}
+
+unsigned int pop3WriteCommand(struct selector_key *key) {
     
-    printf("bytes read: %zu\n", bytes_read);
+    struct Client *client = key->data;
 
-    buffer_write_adv(&client->clientBuffer, bytes_read); // avanzo el puntero de escritura
+    size_t limit;
+    ssize_t count;
+    uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
+    count = send(client->fd, buffer, limit, 0x4000);
+    buffer_read_adv(&client->serverBuffer, count);
 
-
-    //Lo que leo se lo tengo que dar al parser.
-    bool error = false;
-    pop3cmd_consume(&client->clientBuffer, client->parser, &error); // le doy al parser lo que lei del cliente
-
-
-    if (client->parser->finished) {
-        executeCommand(client->parser, key);
-        parser_reset(client->parser); 
+    if (buffer_can_read(&client->serverBuffer)) {  //Si no logre enviar todo vuelvo a entrar a enviar.
         selector_set_interest_key(key, OP_WRITE);
         return WRITE;
     }
 
-    parser_reset(client->parser);
-    if (!buffer_can_read(&client->serverBuffer)) {
-        selector_set_interest_key(key, OP_READ);
-        return READ;
+    if(buffer_can_read(&client->clientBuffer)){
+        printf("todavia quedan cosas por procesar del cliente\n");
+        return parseCommandInBuffer(key);
     }
-
-
-    return WRITE;
-
-
+    selector_set_interest_key(key, OP_READ); // Si no quedan cosas por procesar entonces vuelvo a leer del cliente
+    return READ;
 }
 
-void pop3ReadFile(struct selector_key* key){
+
+
+unsigned int pop3ReadFile(struct selector_key* key){
+    printf("Entre al read file\n");
     struct Client *client = key->data;
 
     size_t limit;
@@ -134,9 +151,37 @@ void pop3ReadFile(struct selector_key* key){
     }
 
     selector_set_interest_key(key, OP_WRITE);
+    return WRITE_FILE;
 }
 
-void pop3WriteFile(struct selector_key* key) {
+stm_state_t parseCommandInBuffer(struct selector_key* key) {
+//Lo que leo se lo tengo que dar al parser.
+    struct Client *client = key->data;
+    bool error = false;
+    if (buffer_can_read(&client->clientBuffer)){
+        printf("Entre porque tengo data del cliente");
+        pop3cmd_consume(&client->clientBuffer, client->parser, &error); // le doy al parser lo que lei del cliente
+        printf("Volvi de consumir del parser\n");
+    } else {
+        parser_reset(client->parser);
+        selector_set_interest_key(key, OP_READ);
+        return READ;
+    }
+
+    if (client->parser->finished) {
+        printf("El parser termino\n");
+        stm_state_t state = executeCommand(client->parser, key);
+        printf("El Ejecute el comando entonces el server buffer tiene nueva info.\n");
+        parser_reset(client->parser); 
+        selector_set_interest_key(key, OP_WRITE);
+        return state;
+    } 
+    
+    return ERROR_STATE;
+}
+
+unsigned int pop3WriteFile(struct selector_key* key) {
+    printf("Entre al write file\n");
     struct Client *client = key->data;
     //Le mando al usuario lo que lei del file
     if (buffer_can_read(&client->serverBuffer)) {
@@ -149,65 +194,17 @@ void pop3WriteFile(struct selector_key* key) {
 
 
     if (!client->fileDoneReading) {
-        selector_set_interest_key(key, OP_READ);
+       return pop3ReadFile(key);
+
     } else {
         // client-> write = pop3WriteCommand;
         // client->read = pop3ReadCommand;
         selector_set_interest_key(key, OP_READ);
-    }
-}
-
-unsigned int pop3WriteCommand(struct selector_key *key) {
-    struct Client *client = key->data;
-
-    size_t limit;
-    ssize_t count;
-    uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
-    count = send(client->fd, buffer, limit, 0x4000);
-
-    buffer_read_adv(&client->serverBuffer, count);
-
-    if (buffer_can_read(&client->serverBuffer)) {
-        selector_set_interest_key(key, OP_WRITE);
-        return WRITE;
-    }
-
-    if(buffer_can_read(&client->clientBuffer)){
-        printf("puedo leer del cliente\n");
-        selector_set_interest_key(key, OP_READ);
         return READ;
     }
-    selector_set_interest_key(key, OP_READ);
-    return READ;
-
-
-    // if (buffer_can_read(&client->serverBuffer)) {
-    //     printf("entre al buffer can read de write command\n");
-    //     printf("write : %s", client->serverBuffer.write);
-    //     size_t size = 0;
-    //     char *rbuffer = (char *)buffer_read_ptr(&client->serverBuffer, &size);
-    //     int bytes_read = (int)send(client->fd, rbuffer, size, 0x80000);
-    //     buffer_read_adv(&client->serverBuffer, bytes_read);
-    //     printf("LLegue aca\n");
-    //     if(!buffer_can_read(&client->serverBuffer)){
-    //         printf("entre al buffer can read de write command\n");
-    //         selector_set_interest_key(key, OP_READ);
-    //         return;
-    //     // pop3ReadCommand(key);
-    //     } else {return;}
-        
-
-    // } else {
-    //         selector_set_interest_key(key, OP_READ);
-    //     // pop3ReadCommand(key);
-
-    // }
-
-    // if (client->state == CLOSED){
-    //     printf("bye bye\n");
-    //     selector_unregister_fd(key->s, client->fd);
-    // }
 }
+
+
 
 void pop3Block(struct selector_key *key) {
     // tenemos que bloquear el socket

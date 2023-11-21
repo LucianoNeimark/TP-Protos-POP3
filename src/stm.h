@@ -24,6 +24,8 @@
 typedef enum {
     WRITE = 0,
     READ,
+    WRITE_FILE,
+    READ_FILE,
     ERROR_STATE
 }stm_state_t;
 

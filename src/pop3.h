@@ -72,11 +72,12 @@ void pop3Write(struct selector_key *key);
 void pop3Block(struct selector_key *key);
 void pop3Close(struct selector_key *key);
 unsigned int pop3ReadCommand(struct selector_key* key);
-void pop3ReadFile(struct selector_key* key);
-void pop3WriteFile(struct selector_key* key);
+unsigned int pop3ReadFile(struct selector_key* key);
+unsigned int pop3WriteFile(struct selector_key* key);
 unsigned int pop3WriteCommand(struct selector_key* key);
 void pop3Error(unsigned int n, struct selector_key *key);
 
+stm_state_t parseCommandInBuffer(struct selector_key* key);
 
  char * byte_stuffing(char* line);
 
@@ -88,6 +89,14 @@ static const struct state_definition states [] = {
     {
         .state = READ,
         .on_read_ready = pop3ReadCommand,
+    },
+    {
+        .state = WRITE_FILE,
+        .on_write_ready = pop3WriteFile,
+    },
+    {
+        .state = READ_FILE,
+        .on_read_ready = pop3ReadFile,
     },
     {
         .state = ERROR_STATE,
