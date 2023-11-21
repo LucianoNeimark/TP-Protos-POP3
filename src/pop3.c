@@ -87,6 +87,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
     parser_reset(client->parser);
     if (!buffer_can_read(&client->serverBuffer)) {
         selector_set_interest_key(key, OP_READ);
+        return READ;
     }else {
         return WRITE;
     }
@@ -95,6 +96,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
         // Example: Set state to CLOSED and unregister the client
         client->state = CLOSED;
         selector_unregister_fd(key->s, client->fd);
+        return ERROR_STATE;
     }
 
     return WRITE;
@@ -162,21 +164,19 @@ unsigned int pop3WriteCommand(struct selector_key *key) {
     uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
     count = send(client->fd, buffer, limit, 0x4000);
 
-    printf("el buffer antes de escribir es : %s\n", buffer);
-    printf("el count es : %zu\n", count);
     buffer_read_adv(&client->serverBuffer, count);
-    size_t limit3;
-    uint8_t *buffer2 = buffer_read_ptr(&client->serverBuffer, &limit3);
-    printf("el buffer dsps de escribir es : %s\n", buffer2);
 
     if (buffer_can_read(&client->serverBuffer)) {
-        printf("espero que funciones!");
         selector_set_interest_key(key, OP_WRITE);
         return WRITE;
     }
 
+    if(buffer_can_read(&client->clientBuffer)){
+        printf("puedo leer del cliente\n");
+        selector_set_interest_key(key, OP_READ);
+        return pop3ReadCommand(key);
+    }
     selector_set_interest_key(key, OP_READ);
-    // pop3ReadCommand(key);
     return READ;
 
 

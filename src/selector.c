@@ -226,7 +226,7 @@ static void
 items_update_fdset_for_fd(fd_selector s, const struct item * item) {
     FD_CLR(item->fd, &s->master_r);
     FD_CLR(item->fd, &s->master_w);
-
+    
     if(ITEM_USED(item)) {
         if(item->interest & OP_READ) {
             FD_SET(item->fd, &(s->master_r));
@@ -461,14 +461,11 @@ handle_iteration(fd_selector s) {
         if(ITEM_USED(item)) {
             key.fd   = item->fd;
             key.data = item->data;
-            printf("%s", FD_ISSET(item->fd, &s->slave_r) ? "true\n\n" : "false\n\n");
             if(FD_ISSET(item->fd, &s->slave_r)) {
                 if(OP_READ & item->interest) {
-                    printf("pos: %d interest: %d\n",i, item->interest);
                     if(0 == item->handler->handle_read) {
                         assert(("OP_READ arrived but no handler. bug!" == 0));
                     } else {
-                        printf("Entreeee\n");
                         item->handler->handle_read(&key);
                     }
                 }
