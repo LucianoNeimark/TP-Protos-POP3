@@ -1,6 +1,7 @@
 #include "pop3.h"
 #include "command-handler.h"
-// include me MSG_NOSIGNAL
+
+
 
 
 
@@ -8,12 +9,12 @@
 // y retr requiere manipulacion de la salida.
 void pop3Read(struct selector_key *key) {
     struct Client *client = key->data;
-    client->read(key);
+    stm_handler_read(&client->stm, key);
 }
 
 void pop3Write(struct selector_key *key) {
     struct Client *client = key->data;
-    client->write(key);
+    stm_handler_write(&client->stm, key);
 }
 
 char * byte_stuffing(char* line) {
@@ -55,7 +56,7 @@ char * byte_stuffing(char* line) {
 }
 
 
-void pop3ReadCommand(struct selector_key* key) {
+unsigned int pop3ReadCommand(struct selector_key* key) {
     struct Client *client = key->data;
 
     //Primero tengo que leer lo que escrinio el usuario y hacerlo "persistir" en su buffer interno asi cuando se vuelve a llamar sigue todo ok.
@@ -80,13 +81,14 @@ void pop3ReadCommand(struct selector_key* key) {
         executeCommand(client->parser, key);
         parser_reset(client->parser); 
         selector_set_interest_key(key, OP_WRITE);
+        return WRITE;
     }
 
     parser_reset(client->parser);
     if (!buffer_can_read(&client->serverBuffer)) {
         selector_set_interest_key(key, OP_READ);
     }else {
-        return;
+        return WRITE;
     }
 
     if (bytes_read == 0) { 
@@ -94,6 +96,8 @@ void pop3ReadCommand(struct selector_key* key) {
         client->state = CLOSED;
         selector_unregister_fd(key->s, client->fd);
     }
+
+    return WRITE;
 
 
 }
@@ -144,13 +148,13 @@ void pop3WriteFile(struct selector_key* key) {
     if (!client->fileDoneReading) {
         selector_set_interest_key(key, OP_READ);
     } else {
-        client-> write = pop3WriteCommand;
-        client->read = pop3ReadCommand;
+        // client-> write = pop3WriteCommand;
+        // client->read = pop3ReadCommand;
         selector_set_interest_key(key, OP_READ);
     }
 }
 
-void pop3WriteCommand(struct selector_key *key) {
+unsigned int pop3WriteCommand(struct selector_key *key) {
     struct Client *client = key->data;
 
     size_t limit;
@@ -168,11 +172,12 @@ void pop3WriteCommand(struct selector_key *key) {
     if (buffer_can_read(&client->serverBuffer)) {
         printf("espero que funciones!");
         selector_set_interest_key(key, OP_WRITE);
+        return WRITE;
     }
 
     selector_set_interest_key(key, OP_READ);
     // pop3ReadCommand(key);
-    return;
+    return READ;
 
 
     // if (buffer_can_read(&client->serverBuffer)) {
@@ -209,5 +214,5 @@ void pop3Block(struct selector_key *key) {
 }
 
 void pop3Close(struct selector_key *key) {
-    close(key->fd);
+   close(key->fd);
 }

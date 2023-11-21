@@ -12,6 +12,7 @@
 #include "netutils.h"
 #include "selector.h"
 #include "pop3cmd.h"
+#include "stm.h"
 
 #define MAX_EMAILS 10
 
@@ -58,12 +59,10 @@ typedef struct Client {
     bool fileDoneReading;
     FileState fileState;
 
+    // state machine
 
+    struct state_machine stm;
 
-
-    //Read and write functions
-    void(*read)(struct selector_key *key);
-    void(*write)(struct selector_key *key);
 
 
 } Client;
@@ -72,13 +71,28 @@ void pop3Read(struct selector_key *key);
 void pop3Write(struct selector_key *key);
 void pop3Block(struct selector_key *key);
 void pop3Close(struct selector_key *key);
-void pop3ReadCommand(struct selector_key* key);
+unsigned int pop3ReadCommand(struct selector_key* key);
 void pop3ReadFile(struct selector_key* key);
 void pop3WriteFile(struct selector_key* key);
-void pop3WriteCommand(struct selector_key* key);
+unsigned int pop3WriteCommand(struct selector_key* key);
 
 
  char * byte_stuffing(char* line);
+
+static const struct state_definition states [] = {
+    {
+        .state = WRITE,
+        .on_write_ready = pop3WriteCommand,
+    },
+    {
+        .state = READ,
+        .on_read_ready = pop3ReadCommand,
+    },
+    {
+        .state = ERROR_STATE,
+    }
+};
+
 
 #endif // POP3_H
 

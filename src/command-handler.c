@@ -110,8 +110,6 @@ void handleRetr(char * arg1, char * arg2, struct selector_key* key) {
             sprintf(message, "+OK %d octets\r\n", client->files[i].file_size);
             write_to_client(client, message);
             client->activeFile = client->files[i].file_name;
-            client->read = pop3ReadFile; // Seteo que ahora voy a leer archivo y no del usuario.
-            client->write = pop3WriteFile;
             client->fileDoneReading = false;
             // buffer_reset(&client->serverBuffer);
             pop3ReadFile(key);

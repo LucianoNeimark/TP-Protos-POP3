@@ -21,6 +21,12 @@
  * de selector.c.
  */
 
+typedef enum {
+    WRITE = 0,
+    READ,
+    ERROR_STATE
+}stm_state_t;
+
 struct state_machine {
     /** declaración de cual es el estado inicial */
     unsigned                      initial;
