@@ -25,14 +25,13 @@
 #include "command-handler.h"
 #include "include/manager_handler.h"
 #include "include/metrics.h"  // temporal (hasta que corramos pop3_handle_connection)
+#include "include/socket_setup.h"
 #include "args.h"
 #include "selector.h"
 
 #define SELECTOR_SIZE 1024
 
 static bool done = false;
-
-static int setupManagerSocket(char *addr, int port);
 
 //llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
 // Donde escribiamos ahora copiamos al buffer y seteamos la intencion
@@ -373,40 +372,4 @@ main( int argc,  char **argv) {
         close(server);
     }
     return ret;
-}
-
-static int setupManagerSocket(char *addr, int port) {
-
-    const int managerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    
-    if(managerSocket < 0) {
-        fprintf(stdout, "Error creating manager socket: %s\n", strerror(errno));
-        goto manager_error;
-    }
-
-    // Para reusar el socket
-    setsockopt(managerSocket, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
-
-    struct sockaddr_in manager_addr;
-    memset(&manager_addr, 0, sizeof(manager_addr));
-    manager_addr.sin_family     = AF_INET;
-    manager_addr.sin_port      = htons(port);
-
-    if (inet_pton(AF_INET, addr, &manager_addr.sin_addr) < 0) {
-        fprintf(stdout, "Error parsing manager address: %s\n", strerror(errno));
-        goto manager_error;
-    }
-
-    if(bind(managerSocket, (struct sockaddr*) &manager_addr, sizeof(manager_addr)) < 0) {
-        fprintf(stdout, "Error binding manager socket: %s\n", strerror(errno));
-        goto manager_error;
-    }
-
-    fprintf(stdout, "Manager listening on UDP %s:%d\n", addr, port);
-
-    return managerSocket;
-
-    manager_error:
-    if (managerSocket != -1) close(managerSocket);
-    return -1;
 }
