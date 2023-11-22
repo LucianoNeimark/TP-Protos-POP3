@@ -190,9 +190,6 @@ return;
     //     // return error;
     // }
 
-    close(client->fd);
-    free(client);
-
 }
 
 /** rutina de cada hilo worker */
