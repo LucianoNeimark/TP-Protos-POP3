@@ -29,8 +29,7 @@ struct POP3args {
     bool            disectors_enabled;
 
     // struct doh      doh;
-    struct user    users[MAX_USERS];
-    size_t          nusers;
+
     char  directory[MAX_DIR_LEN];
 };
 

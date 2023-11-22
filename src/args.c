@@ -9,16 +9,16 @@
 
 static unsigned short
 port(const char *s) {
-     char *end     = 0;
-     const long sl = strtol(s, &end, 10);
+    char *end     = 0;
+    const long sl = strtol(s, &end, 10);
 
-     if (end == s|| '\0' != *end
+    if (end == s|| '\0' != *end
         || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno)
         || sl < 0 || sl > USHRT_MAX) {
-         fprintf(stderr, "port should in in the range of 1-65536: %s\n", s);
-         exit(1);
-     }
-     return (unsigned short)sl;
+        fprintf(stderr, "port should in in the range of 1-65536: %s\n", s);
+        exit(1);
+    }
+    return (unsigned short)sl;
 }
 
 static void
@@ -46,7 +46,7 @@ usage(const char *progname) {
         "   -L <conf addr>     Dirección donde servirá el servicio de management.\n"
         "   -p <POP3 port>     Puerto entrante conexiones POP3.\n"
         "   -P <conf port>     Puerto entrante conexiones configuracion\n"
-        "   -u <name>:<pass>   Usuario y contraseña de usuario que puede usar el proxy. Hasta 10.\n"
+        "   -u <name>:<pass>   Usuario y contraseña de usuario que puede usar el proxy.\n"
         "   -v                 Imprime información sobre la versión versión y termina.\n"
         "   -d <path-to-mails> Especifica la carpeta donde se guardarán los usuarios y sus mails.\n"
         "\n",
@@ -62,12 +62,11 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
     args->POP3_port = 1110;
 
     args->mng_addr   = "127.0.0.1";
-    args->mng_port   = 8080;
+    args->mng_port   = 9090;
 
     args->disectors_enabled = true;
 
     int c;
-    int nusers = 0;
 
     while (true) {
         int option_index = 0;
@@ -80,14 +79,13 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
             { 0,           0,                 0, 0 }
         };
 
-        c = getopt_long(argc, argv, "hl::L::p::o::u:vd:t:f:", long_options, &option_index); //Estaba el long_options
+        c = getopt_long(argc, argv, "hl:L:p:P:u:vd:t:f:", long_options, &option_index);
         if (c == -1)
             break;
 
         switch (c) {
             case 'h':
                 usage(argv[0]);
-                
                 break;
             case 'l':
                 args->POP3_addr = optarg;
@@ -114,12 +112,25 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
                 printf("directory: %s\n", optarg);
                 directory(args->directory,optarg);
                 break;
-
+            // case 0xD001:
+            //     args->doh.ip = optarg;
+            //     break;
+            // case 0xD002:
+            //     args->doh.port = port(optarg);
+            //     break;
+            // case 0xD003:
+            //     args->doh.host = optarg;
+            //     break;
+            // case 0xD004:
+            //     args->doh.path = optarg;
+            //     break;
+            // case 0xD005:
+            //     args->doh.query = optarg;
+            //     break;
             default:
                 fprintf(stderr, "unknown argument %d.\n", c);
                 exit(1);
         }
-        args->nusers = nusers;
     }
     if (optind < argc) {
         fprintf(stderr, "argument not accepted: ");

@@ -390,7 +390,7 @@ static int setupManagerSocket(char *addr, int port) {
     manager_addr.sin_family     = AF_INET;
     manager_addr.sin_port      = htons(port);
 
-    if (inet_pton(AF_INET, addr, &manager_addr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, addr, &manager_addr.sin_addr) < 0) {
         fprintf(stdout, "Error parsing manager address: %s\n", strerror(errno));
         goto manager_error;
     }
