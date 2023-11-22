@@ -319,7 +319,6 @@ void pop3Block(struct selector_key *key) {
 }
 
 void closeConnection(struct selector_key *key) {
-    Client * client = key->data;
 
     if (key->fd != -1) {
         selector_unregister_fd(key->s, key->fd);

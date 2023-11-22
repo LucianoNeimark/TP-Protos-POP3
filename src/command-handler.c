@@ -94,7 +94,6 @@ stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
         write_to_client(client, message);
         free(message);
         return WRITE;
-
     }
 }
 
