@@ -38,32 +38,32 @@ int setupManagerSocket(char *addr, int port) {
 
 
 int setupClientSocket(const char *address, const char *port, struct addrinfo *server_addr) {
+    struct addrinfo *aux_addr;
     struct addrinfo hints = {0};
-    hints.ai_family = AF_UNSPEC;      // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM;  // TCP socket
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
 
-    // Get address information
-    int status = getaddrinfo(address, port, &hints, &server_addr);
+    int status = getaddrinfo(address, port, &hints, &aux_addr);
     if (status != 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
         return -1;
     }
 
-    // Create a socket
-    int clientSocket = socket(server_addr->ai_family, server_addr->ai_socktype, server_addr->ai_protocol);
-    if (clientSocket == -1) {
-        perror("socket");
-        freeaddrinfo(server_addr);
+    int client_socket = socket(aux_addr->ai_family, aux_addr->ai_socktype, aux_addr->ai_protocol);
+    if (client_socket == -1) {
+        fprintf(stdout, "Error establishing client socket: %s\n", strerror(errno));
+        freeaddrinfo(aux_addr);
         return -1;
     }
 
-    // Connect to the server
-    if (connect(clientSocket, server_addr->ai_addr, server_addr->ai_addrlen) == -1) {
-        perror("connect");
-        close(clientSocket);
-        freeaddrinfo(server_addr);
+    if (connect(client_socket, aux_addr->ai_addr, aux_addr->ai_addrlen) == -1) {
+        fprintf(stdout, "Error connecting to client socket: %s\n", strerror(errno));
+        close(client_socket);
+        freeaddrinfo(aux_addr);
         return -1;
     }
-
-    return clientSocket;
+    
+    memcpy(server_addr, aux_addr, sizeof(struct addrinfo));
+    freeaddrinfo(aux_addr);
+    return client_socket;
 }

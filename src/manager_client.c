@@ -8,6 +8,9 @@
 struct manager_client {
     struct addrinfo server_addr;
 
+    struct sockaddr_storage ret_addr;
+    socklen_t ret_addr_len;
+
     uint8_t read_buffer[UDP_BUFFER_SIZE];
     uint8_t write_buffer[UDP_BUFFER_SIZE];
 } ;
@@ -22,36 +25,34 @@ int main(int argc, char **argv) {
     struct manager_client client;
     memset(&client.server_addr, 0, sizeof(struct addrinfo));
 
-    int managerSocket = setupClientSocket(argv[1], argv[2], &client.server_addr);
-
-    printf("socket: %d\n", managerSocket);
+    int client_socket = setupClientSocket(argv[1], argv[2], &client.server_addr);
 
     while (true) {
-        // char buffer[1024];
-        // if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
-        //     if (write(managerSocket, buffer, strlen(buffer)) < 0) {
-        //         printf("Write failed\n");
-        //     }
+        char buffer[UDP_BUFFER_SIZE];
+        char * s = fgets(buffer, sizeof(buffer), stdin);
 
-        // }
+        if (s == NULL) {
+            break;
+        }
+        
+        memset(client.read_buffer, 0, UDP_BUFFER_SIZE);
+        memset(client.write_buffer, 0, UDP_BUFFER_SIZE);
 
-        // client.manager_addr_len = sizeof(client.manager_addr);
-        // memset(client.read_buffer, 0, UDP_BUFFER_SIZE);
-        // memset(client.write_buffer, 0, UDP_BUFFER_SIZE);
+        if (sendto(client_socket, s, strlen(s), 0,
+                   client.server_addr.ai_addr, client.server_addr.ai_addrlen) < 0) {
+            fprintf(stdout, "Error sending message to server: %s\n", strerror(errno));
+            return -1;
+        }
 
-        // ssize_t bytes_read = recvfrom(key->fd, the_manager.manager_buffer, UDP_BUFFER_SIZE, 0,
-        //                        (struct sockaddr *) &the_manager.manager_addr, &the_manager.manager_addr_len);
+        ssize_t bytes_read = recvfrom(client_socket, client.read_buffer, UDP_BUFFER_SIZE, 0,
+                               (struct sockaddr *) &client.ret_addr, &client.ret_addr_len);
 
-        // if (bytes_read <= 0) {
-        //     fprintf(stdout, "Error receiving message from server: %s", strerror(errno));
-        //     return ;
-        // }
+        if (bytes_read <= 0) {
+            fprintf(stdout, "Error receiving message from server: %s\n", strerror(errno));
+            return -1;
+        }
 
-        // if (sendto(key->fd, the_manager.server_buffer, sizeof(the_manager.server_buffer), 0,
-        //            (struct sockaddr *) &the_manager.manager_addr, the_manager.manager_addr_len) < 0) {
-        //     fprintf(stdout, "Error sending message to server: %s", strerror(errno));
-        // }
-
+        printf("%s", client.read_buffer);
     }
 
     return 1;

@@ -40,9 +40,9 @@ ssize_t custom_getline(char **lineptr, FILE *file) {
     // imprimi lline pointer
     
 
-    if(count < 0){
-        return count;
-    }
+    // if(count < 0){
+    //     return count;
+    // }
     (*lineptr)[count] = '\0';  // Null-terminate the string
     printf("lineptr es : %s\n", *lineptr);
     return count;
