@@ -74,19 +74,8 @@ stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
     }
 
     if(!strlen(arg1)){
-        char * message = malloc(100);
-        sprintf(message,"+OK %d messages (%d octets)\r\n", client->active_file_cant, client->active_file_size);
-        write_to_client(client, message);
-        for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
-            free(message);
-            message = malloc(100);
-            if (!client->files[i].to_delete) {
-                sprintf(message,"%d %d\r\n", client->files[i].file_id, client->files[i].file_size);
-                write_to_client(client, message);
-            }
-        }
-        write_to_client(client, ".\r\n");
-        return WRITE;
+        return pop3ReadList(key);
+        
     } else {
         char * message = malloc(100);
         for(unsigned int i = 0; i < client->file_cant; i++){
@@ -94,7 +83,7 @@ stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
                 if (!client->files[i].to_delete) {
                     sprintf(message,"+OK %d %d\r\n", client->files[i].file_id, client->files[i].file_size);
                 } else {
-                    sprintf(message,"-ERR message %d has been marked to delete\r\n", client->files[i].file_id);
+                    sprintf(message,"-ERR message is deleted\r\n");
                 }
                 write_to_client(client, message);
                 free(message);

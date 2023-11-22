@@ -226,6 +226,81 @@ stm_state_t parseCommandInBuffer(struct selector_key* key) {
 
 
 
+unsigned int pop3ReadList(struct selector_key* key) {
+    printf("Entre al read list\n");
+    struct Client *client = key->data;
+
+    if(client->lastFileList == (int) client->file_cant){        
+        client->lastFileList = -1;
+        // escrivbime un \r\rn.
+        size_t limitEnd;
+        uint8_t *bufferEnd;
+        ssize_t countEnd;
+
+        bufferEnd = buffer_write_ptr(&client->serverBuffer, &limitEnd);
+        countEnd = (size_t) snprintf((char*)bufferEnd,4,"%s", ".\r\n");
+        buffer_write_adv(&client->serverBuffer, countEnd);
+
+        selector_set_interest_key(key, OP_WRITE);
+        return WRITE;
+    }
+
+    if(client->lastFileList == -1){
+        client->lastFileList = 0;
+        // escribime en el budder el OK
+        size_t limitFirst;
+        uint8_t *bufferFirst;
+        ssize_t countFirst;
+
+        bufferFirst = buffer_write_ptr(&client->serverBuffer, &limitFirst);
+        countFirst = snprintf((char*)bufferFirst,limitFirst, "+OK %d message%s\r\n", client->file_cant, client->file_cant > 1 ? "s" : "");
+        buffer_write_adv(&client->serverBuffer, countFirst);
+        selector_set_interest_key(key, OP_WRITE);
+        return WRITE_LIST;
+    }
+
+    size_t limit;
+    uint8_t *buffer;
+    ssize_t count;
+
+    buffer = buffer_write_ptr(&client->serverBuffer, &limit);
+
+    count = snprintf((char*)buffer,limit,"%d %d\r\n", client->files[client->lastFileList].file_id, client->files[client->lastFileList].file_size);
+    buffer_write_adv(&client->serverBuffer, count);
+    client->lastFileList++;
+    selector_set_interest_key(key, OP_WRITE);
+        return WRITE_LIST;
+}
+
+
+unsigned int pop3WriteList(struct selector_key* key){
+    printf("Entre al write list\n");
+    struct Client *client = key->data;
+
+    size_t limit;
+    ssize_t count;
+    uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
+    count = send(client->fd, buffer, limit, 0x4000);
+    buffer_read_adv(&client->serverBuffer, count);
+    printf("el budder es : %s\n", buffer);
+
+    if (buffer_can_read(&client->serverBuffer)) {  //Si no logre enviar todo vuelvo a entrar a enviar.
+        selector_set_interest_key(key, OP_WRITE);
+        return WRITE_LIST;
+    }
+
+    printf("termine de escribir el list\n");
+    return pop3ReadList(key);
+
+
+}
+
+
+
+
+
+
+
 
 
 void pop3Block(struct selector_key *key) {

@@ -26,6 +26,8 @@ typedef enum {
     READ,
     WRITE_FILE,
     READ_FILE,
+    READ_LIST,
+    WRITE_LIST,
     ERROR_STATE
 }stm_state_t;
 

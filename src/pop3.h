@@ -55,6 +55,7 @@ typedef struct Client {
     unsigned int file_cant;
     unsigned int active_file_cant;
     unsigned int active_file_size;
+    int lastFileList;
     char* activeFile;
     bool fileDoneReading;
     bool newLine;
@@ -79,6 +80,8 @@ unsigned int pop3ReadFile(struct selector_key* key);
 unsigned int pop3WriteFile(struct selector_key* key);
 unsigned int pop3WriteCommand(struct selector_key* key);
 void pop3Error(unsigned int n, struct selector_key *key);
+unsigned int pop3WriteList(struct selector_key* key);
+unsigned int pop3ReadList(struct selector_key* key);
 
 stm_state_t parseCommandInBuffer(struct selector_key* key);
 
@@ -100,6 +103,14 @@ static const struct state_definition states [] = {
     {
         .state = READ_FILE,
         .on_read_ready = pop3ReadFile,
+    },
+    {
+        .state = READ_LIST,
+        .on_read_ready = pop3ReadList,
+    },
+    {
+        .state = WRITE_LIST,
+        .on_write_ready = pop3WriteList,
     },
     {
         .state = ERROR_STATE,
