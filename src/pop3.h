@@ -84,6 +84,7 @@ unsigned int pop3WriteCommand(struct selector_key* key);
 void pop3Error(unsigned int n, struct selector_key *key);
 unsigned int pop3WriteList(struct selector_key* key);
 unsigned int pop3ReadList(struct selector_key* key);
+void closeConnection(struct selector_key *key);
 
 stm_state_t parseCommandInBuffer(struct selector_key* key);
 
@@ -113,6 +114,9 @@ static const struct state_definition states [] = {
     {
         .state = WRITE_LIST,
         .on_write_ready = pop3WriteList,
+    },
+    {
+        .state = CLOSE_STATE,
     },
     {
         .state = ERROR_STATE,

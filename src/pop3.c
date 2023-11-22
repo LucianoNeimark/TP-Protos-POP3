@@ -11,6 +11,11 @@ void pop3Read(struct selector_key *key) {
     printf("Entre al read\n");
     struct Client *client = key->data;
     stm_handler_read(&client->stm, key);
+    if(client->state == CLOSED){
+        printf("El cliente se desconecto\n");
+        closeConnection(key);
+        return;
+    }
 }
 
 void pop3Write(struct selector_key *key) {
@@ -65,7 +70,9 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
     size_t bytes_read = recv(client->fd, buffer2, limit, 0x4000); // leo lo que me manda el cliente
     buffer_write_adv(&client->clientBuffer, bytes_read); // avanzo el puntero de escritura
 
-
+    if(client->state == CLOSED){
+        return CLOSE_STATE;
+    }
 
     if (bytes_read == 0 && !buffer_can_read(&client->clientBuffer)) {
         client->state = CLOSED;
@@ -311,11 +318,21 @@ void pop3Block(struct selector_key *key) {
     // sock_blocking(((Client *)(key->data))->fd);
 }
 
+void closeConnection(struct selector_key *key) {
+    Client * client = key->data;
+
+    if (key->fd != -1) {
+        selector_unregister_fd(key->s, key->fd);
+        close(key->fd);
+    }
+
+    printf("Cerrando el socket\n");
+}
+
 void pop3Close(struct selector_key *key) {
-   metrics_close_connection();
-   close(key->fd);
-   printf("Cerrando el socket\n");
-//    exit(1);
+    printf("Entre al close\n");
+    struct state_machine *stm = &((struct Client *) key->data)->stm;
+    stm_handler_close(stm, key);
 }
 
 void pop3Error(unsigned int n, struct selector_key *key) {
