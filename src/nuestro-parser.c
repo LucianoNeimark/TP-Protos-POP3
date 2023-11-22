@@ -63,10 +63,9 @@ pop3cmd_state parser_feed(pop3cmd_parser * p, uint8_t c) {
     
     if(p->state == UNDEF) c = toupper(c);
     if (BUFFER_SIZE == p->line_size) {
-        
         return ERROR;
     }
-    
+
     switch (c) { 
         
         case ' ':
@@ -75,9 +74,11 @@ pop3cmd_state parser_feed(pop3cmd_parser * p, uint8_t c) {
             p->line_size = 0;
             break;
         case '\n':
+
             if (p->line_size > 0 && p->line[p->line_size-1] == '\r') {
                 p->line[--p->line_size] = 0;
                 process_buffer(p);
+
             } else {
                 p->state = ERROR;
             }

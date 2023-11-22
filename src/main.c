@@ -94,9 +94,13 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
   client->fd = client_fd;
   client->state = AUTHORIZATION;
   client->parser = pop3cmd_parser_init();
-  client->read = pop3ReadCommand;
-  client->write = pop3WriteCommand;
   client->fileState.file = NULL;
+  client->stm.initial = WRITE;
+  client->stm.max_state = ERROR_STATE;
+  client->stm.states = states; // para cada estado un afuncion;
+  stm_init(&client->stm);
+  client->newLine = true;
+  client->lastFileList = -1;
 
   buffer_init(&client->serverBuffer, BUFFER_SIZE, client->serverBuffer_data);
 

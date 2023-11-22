@@ -21,6 +21,16 @@
  * de selector.c.
  */
 
+typedef enum {
+    WRITE = 0,
+    READ,
+    WRITE_FILE,
+    READ_FILE,
+    READ_LIST,
+    WRITE_LIST,
+    ERROR_STATE
+}stm_state_t;
+
 struct state_machine {
     /** declaración de cual es el estado inicial */
     unsigned                      initial;
@@ -34,7 +44,7 @@ struct state_machine {
     const struct state_definition *current;
 };
 
-struct selector_key *key;
+static struct selector_key *key;
 
 /**
  * definición de un estado de la máquina de estados

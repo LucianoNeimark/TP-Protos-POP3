@@ -13,6 +13,7 @@
 #include "selector.h"
 #include "pop3cmd.h"
 #include "include/metrics.h"
+#include "stm.h"
 
 #define MAX_EMAILS 10
 
@@ -55,16 +56,18 @@ typedef struct Client {
     unsigned int file_cant;
     unsigned int active_file_cant;
     unsigned int active_file_size;
+    int lastFileList;
     char* activeFile;
     bool fileDoneReading;
+    bool newLine;
+    bool seenEndOctet;
+    bool seenEndOctetR;
     FileState fileState;
 
+    // state machine
 
+    struct state_machine stm;
 
-
-    //Read and write functions
-    void(*read)(struct selector_key *key);
-    void(*write)(struct selector_key *key);
 
 
 } Client;
@@ -73,13 +76,49 @@ void pop3Read(struct selector_key *key);
 void pop3Write(struct selector_key *key);
 void pop3Block(struct selector_key *key);
 void pop3Close(struct selector_key *key);
-void pop3ReadCommand(struct selector_key* key);
-void pop3ReadFile(struct selector_key* key);
-void pop3WriteFile(struct selector_key* key);
-void pop3WriteCommand(struct selector_key* key);
+unsigned int pop3ReadCommand(struct selector_key* key);
+unsigned int pop3ReadFile(struct selector_key* key);
+unsigned int pop3WriteFile(struct selector_key* key);
+unsigned int pop3WriteCommand(struct selector_key* key);
+void pop3Error(unsigned int n, struct selector_key *key);
+unsigned int pop3WriteList(struct selector_key* key);
+unsigned int pop3ReadList(struct selector_key* key);
 
+stm_state_t parseCommandInBuffer(struct selector_key* key);
 
  char * byte_stuffing(char* line);
+
+static const struct state_definition states [] = {
+    {
+        .state = WRITE,
+        .on_write_ready = pop3WriteCommand,
+    },
+    {
+        .state = READ,
+        .on_read_ready = pop3ReadCommand,
+    },
+    {
+        .state = WRITE_FILE,
+        .on_write_ready = pop3WriteFile,
+    },
+    {
+        .state = READ_FILE,
+        .on_read_ready = pop3ReadFile,
+    },
+    {
+        .state = READ_LIST,
+        .on_read_ready = pop3ReadList,
+    },
+    {
+        .state = WRITE_LIST,
+        .on_write_ready = pop3WriteList,
+    },
+    {
+        .state = ERROR_STATE,
+        .on_arrival = pop3Error,
+    }
+};
+
 
 #endif // POP3_H
 
