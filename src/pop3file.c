@@ -1,17 +1,51 @@
 #include "pop3file.h"
+#include <stdio.h>
 
-#define MAX_SIZE_PATH 256
+#define MAX_SIZE_PATH 1024      // TODO: 256 -> 1024 para que compile
 
 static int get_path(char * path, char *file_name) {
-    return snprintf(path, MAX_SIZE_PATH, "%s%s%s", args->directory, "/", file_name);
+    return snprintf(path, MAX_SIZE_PATH, "%s/%s", args->directory, file_name);
 }
 
 static int get_user_path(char * path, char *file_name, char * user) {
-    return snprintf(path, MAX_SIZE_PATH, "%s%s%s", file_name, "/", user);
+    return snprintf(path, MAX_SIZE_PATH, "%s/%s", file_name, user);
 }
 
 static int get_file_path(char * dest, char * path, char * user, char *file_name) {
-    return snprintf(dest, MAX_SIZE_PATH, "%s%s%s%s%s", path, "/", user, "/", file_name);
+    return snprintf(dest, MAX_SIZE_PATH, "%s/%s/%s", path, user, file_name);
+}
+
+#include <stdio.h>
+#include <stdlib.h>
+
+ssize_t custom_getline(char **lineptr, FILE *file) {
+    if ( lineptr == NULL || file == NULL) {
+        return -1;
+    }
+
+    int fd = fileno(file);
+    if(fd < 0){
+        return -1;
+    }
+    
+    size_t count = 0;
+
+    // Allocate initial buffer or expand existing buffer
+        *lineptr = malloc(128);
+        if (*lineptr == NULL) {
+            return -1;  // Allocation error
+        }
+
+    count = read(fd, *lineptr, 128-1); // para el 0! (no 1)
+    // imprimi lline pointer
+    
+
+    if(count < 0){
+        return count;
+    }
+    (*lineptr)[count] = '\0';  // Null-terminate the string
+    printf("lineptr es : %s\n", *lineptr);
+    return count;
 }
 
 
@@ -46,6 +80,7 @@ int populate_array(Client * client){
             f->file_id = i+1;
             f->file_size = file_info.st_size;
             client->files[i] = *f;
+            client->files[i].to_delete = false;
             client->active_file_size += f->file_size;
             i++;
             free(user_path);
@@ -96,6 +131,43 @@ char* read_file(char *file_name, Client * client) {
     close(file_descriptor);
 
     return file_content;
+}
+
+char* read_first_line_file(char *file_name, Client * client){
+     // Check if the file is already open
+
+    char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
+    get_file_path(file_path, args->directory, client->name, file_name);
+    
+    if (client->fileState.file == NULL) {
+        // Open the file
+        client->fileState.file = fopen(file_path, "r");
+        if (client->fileState.file == NULL) {
+            perror("Error opening file");
+            return NULL;
+        }
+    }
+
+    char *line = NULL;
+    ssize_t bytesRead = custom_getline(&line, client->fileState.file);
+    printf("la lunea es : %s\n", line);
+    printf("Lei %zu bytes\n", bytesRead);
+    if(bytesRead < 0){
+        perror("Error reading file");
+        // todo return ERROR!!!!!!!!!!!!!!!!!!!
+    }
+
+    if (bytesRead == 0) {
+        printf("leu 0 bytes!!!\n\n");
+        // Close the file when we reach the end
+        fclose(client->fileState.file);
+        client->fileState.file = NULL;
+        free(line);
+        return NULL;
+    }
+
+    return line;
+
 }
 
 int remove_file(char * file_name, Client * client) {

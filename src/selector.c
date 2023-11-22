@@ -15,7 +15,9 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sys/signal.h>
+#include <signal.h>
 #include "selector.h"
+
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
@@ -224,7 +226,7 @@ static void
 items_update_fdset_for_fd(fd_selector s, const struct item * item) {
     FD_CLR(item->fd, &s->master_r);
     FD_CLR(item->fd, &s->master_w);
-
+    
     if(ITEM_USED(item)) {
         if(item->interest & OP_READ) {
             FD_SET(item->fd, &(s->master_r));
@@ -455,6 +457,7 @@ handle_iteration(fd_selector s) {
 
     for (int i = 0; i <= n; i++) {
         struct item *item = s->fds + i;
+        
         if(ITEM_USED(item)) {
             key.fd   = item->fd;
             key.data = item->data;

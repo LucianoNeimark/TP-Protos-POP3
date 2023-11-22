@@ -1,21 +1,29 @@
 #include "command-handler.h"
-
+#include "pop3.h"
 //FIXME mover a alguna libreria o algo que tenga sentido. Aca suelto es horrible
 void write_to_client(Client * client, char * message){
-    size_t message_len = strlen(message);
-    memcpy(client->serverBuffer->data, message, message_len);
-    buffer_write_adv(client->serverBuffer, message_len);
-    sock_blocking_write(client->fd, client->serverBuffer);
+    size_t limit;
+    uint8_t *buffer;
+    ssize_t count;
+
+    printf("Sending: %s\n", message);
+    buffer = buffer_write_ptr(&client->serverBuffer, &limit);
+    count = snprintf((char *) buffer, limit, "%s", message);
+    buffer_write_adv(&client->serverBuffer, count);
 }
 
-void handleQuitNonAuth(char * arg1, char * arg, Client * client) {
+stm_state_t handleQuitNonAuth(char * arg1, char * arg,  struct selector_key* key) {
+    struct Client *client = key->data;
+
     write_to_client(client, "+OK POP3 server signing off\r\n");
     
     client->state = CLOSED;
+    return WRITE;
 }
 
 
-void handleQuitAuth(char * arg1, char * arg, Client * client) {
+stm_state_t handleQuitAuth(char * arg1, char * arg, struct selector_key* key) {
+    struct Client *client = key->data;
     client->state = UPDATE;
 
     int error_removing = 0;
@@ -30,7 +38,7 @@ void handleQuitAuth(char * arg1, char * arg, Client * client) {
 
     if (error_removing) {
         write_to_client(client, "-ERR some deleted messages not removed\r\n");
-        return;
+        return WRITE;
     }
 
     char * message = malloc(100);
@@ -44,35 +52,30 @@ void handleQuitAuth(char * arg1, char * arg, Client * client) {
     free(message);
 
     client->state = CLOSED;
+
+    return WRITE;
 }
 
-void handleStat(char * arg1, char * arg2, Client * client) {
+stm_state_t handleStat(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
     char * message = malloc(100);
     sprintf(message,"+OK %d %d\r\n", client->active_file_cant, client->active_file_size);
     write_to_client(client, message);
     free(message);
+    return WRITE;
 }
 
-void handleList(char * arg1, char * arg2, Client * client) {
+stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
 
     if (client->files[0].file_id == 0) {
         write_to_client(client, "-ERR Error opening user folder.\r\n");
-        return ;
+        return WRITE;
     }
 
     if(!strlen(arg1)){
-        char * message = malloc(100);
-        sprintf(message,"+OK %d messages (%d octets)\r\n", client->active_file_cant, client->active_file_size);
-        write_to_client(client, message);
-        for(int i = 0; client->files[i].file_id != -1 && i < MAX_EMAILS; i++){
-            free(message);
-            message = malloc(100);
-            if (!client->files[i].to_delete) {
-                sprintf(message,"%d %d\r\n", client->files[i].file_id, client->files[i].file_size);
-                write_to_client(client, message);
-            }
-        }
-        write_to_client(client, ".\r\n");
+        return pop3ReadList(key);
+        
     } else {
         char * message = malloc(100);
         for(unsigned int i = 0; i < client->file_cant; i++){
@@ -80,38 +83,43 @@ void handleList(char * arg1, char * arg2, Client * client) {
                 if (!client->files[i].to_delete) {
                     sprintf(message,"+OK %d %d\r\n", client->files[i].file_id, client->files[i].file_size);
                 } else {
-                    sprintf(message,"-ERR message %d has been marked to delete\r\n", client->files[i].file_id);
+                    sprintf(message,"-ERR message is deleted\r\n");
                 }
                 write_to_client(client, message);
                 free(message);
-                return;
+                return WRITE;
             }
         }
         sprintf(message,"-ERR no such message \r\n");
         write_to_client(client, message);
         free(message);
+        return WRITE;
+
     }
 }
 
-void handleRetr(char * arg1, char * arg2, Client * client) {
+stm_state_t handleRetr(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
     for(unsigned int i = 0; i < client->file_cant; i++){
         if(client->files[i].file_id == atoi(arg1) && !client->files[i].to_delete){
             char * message = malloc(100);
             sprintf(message, "+OK %d octets\r\n", client->files[i].file_size);
-
             write_to_client(client, message);
-            write_to_client(client, read_file(client->files[i].file_name, client));     // TODO: HAY QUE PARSEAR ESTO!!!
-            write_to_client(client, "\r\n.\r\n");       // no se si hay que marcarle el \r\n de antes
-
+            client->activeFile = client->files[i].file_name;
+            client->fileDoneReading = false;
+            // buffer_reset(&client->serverBuffer);
+            // pop3ReadFile(key);
             free(message);
-            return;
+            return WRITE_FILE;
         }
     }
 
     write_to_client(client, "-ERR no such message\r\n");
+    return WRITE;
 }
 
-void handleDele(char * arg1, char * arg2, Client * client) {
+stm_state_t handleDele(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
     for(unsigned int i = 0; i < client->file_cant; i++){
         if(client->files[i].file_id == atoi(arg1)){
             char * message = malloc(100);
@@ -127,18 +135,22 @@ void handleDele(char * arg1, char * arg2, Client * client) {
 
             write_to_client(client, message);
             free(message);
-            return;
+            return WRITE;
         }
     }
 
     write_to_client(client, "-ERR no such message\r\n");
+    return WRITE;
 }
 
-void handleNoop(char * arg1, char * arg2, Client * client) {
+stm_state_t handleNoop(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
     write_to_client(client, "+OK\r\n");
+    return WRITE;
 }
 
-void handleRset(char * arg1, char * arg2, Client * client) {
+stm_state_t handleRset(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
     for(unsigned int i = 0; i < client->file_cant; i++){
         if (client->files[i].to_delete) {
             client->files[i].to_delete = false;
@@ -150,9 +162,11 @@ void handleRset(char * arg1, char * arg2, Client * client) {
     sprintf(message, "+OK maildrop has %d messages (%d octets)\r\n", client->active_file_cant, client->active_file_size);
     write_to_client(client, message);
     free(message);   
+    return WRITE;
 }
 
-void handleUser(char * arg1, char * arg2, Client * client) {
+stm_state_t handleUser(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
 
     // Send +OK message
     char * message = "+OK\r\n";
@@ -170,16 +184,18 @@ void handleUser(char * arg1, char * arg2, Client * client) {
         // client->name = malloc(strlen(arg1) + 1);
         // strcpy(client->name, arg1);
     }
+    return WRITE;
 }
 
-void handlePass(char * arg1, char * arg2, Client * client) {
+stm_state_t handlePass(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
 
     if (arg1 == NULL) {
         write_to_client(client, "Expected usage: PASS [password]"); //FIXME RFC ( TODO esto es asi? le tiro pass sin nada e intenta autenticarlo)
     } else if (client->name == NULL) {
         write_to_client(client, "-ERR No username given.\r\n");
     } else {
-        if (check_username(client->name, arg1, args->users)) {
+        if (user_check_valid(client->name, arg1)) {
             write_to_client(client, "+OK Logged in.\r\n");
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
             memcpy(client->password, arg1, strlen(arg1) + 1);
@@ -191,23 +207,29 @@ void handlePass(char * arg1, char * arg2, Client * client) {
             write_to_client(client, "-ERR [AUTH] Authentication failed.\r\n");
         }
     }
+    return WRITE;
 }
 
 
 // estos son opcionales!!
-void handleTop(char * arg1, char * arg2, Client * client) {
+stm_state_t handleTop(char * arg1, char * arg2, struct selector_key* key) {
     printf("TOP command!\n");
+    return READ;
 }
 
-void handleUidl(char * arg1, char * arg2, Client * client) {
+stm_state_t handleUidl(char * arg1, char * arg2, struct selector_key* key) {
     printf("UIDL command!\n");
+    return READ;
 }
 
-void handleApop(char * arg1, char * arg2, Client * client) {
+stm_state_t handleApop(char * arg1, char * arg2, struct selector_key* key) {
     printf("APOP command!\n");
+    return READ;
+    
 }
 
-void handleCapaNonAuth(char * arg1, char * arg2, Client * client) {
+stm_state_t handleCapaNonAuth(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
     char * message = "+OK Capability list follows\r\n"
                      "CAPA\r\n"
                      "QUIT\r\n"
@@ -217,9 +239,11 @@ void handleCapaNonAuth(char * arg1, char * arg2, Client * client) {
                      "UIDL\r\n"
                      ".\r\n";
     write_to_client(client, message);
+    return WRITE;
 }
 
-void handleCapaAuth(char * arg1, char * arg2, Client * client) {
+stm_state_t handleCapaAuth(char * arg1, char * arg2, struct selector_key* key) {
+    struct Client *client = key->data;
     char * message = "+OK Capability list follows\r\n"
                      "CAPA\r\n"
                      "QUIT\r\n"
@@ -234,6 +258,7 @@ void handleCapaAuth(char * arg1, char * arg2, Client * client) {
                      "APOP\r\n"
                      ".\r\n";
     write_to_client(client, message);
+    return WRITE;
 }
 
 // CommandInfo commandTable[] = {
@@ -290,22 +315,26 @@ CommandInfo * getTable(client_state state) {
     }
 }
 
-client_state executeCommand(pop3cmd_parser * p, Client * client) {    
-    
+stm_state_t executeCommand(pop3cmd_parser * p, struct selector_key* key) {    
+    struct Client *client = key->data;
     CommandInfo *commandTable = getTable(client->state);
 
-    printf("command: %d\n", p->state);
     
     int i = 0;
     bool found = false;
+    stm_state_t st = ERROR_STATE;
     while(!found && commandTable[i].handler != NULL){
         if(commandTable[i].command == p->state){
-            commandTable[i].handler(p->arg1, p->arg2, client);
+            st = (commandTable[i].handler(p->arg1, p->arg2, key));
             found = true;
         }
         i++;
     }
-    if (!found) write_to_client(client, "-ERR Unknown command.\r\n");
-    return client->state;
+    if (!found){
+        write_to_client(client, "-ERR Unknown command.\r\n");
+        st = WRITE;
+    }
+    printf("hay error? %d\n", st == ERROR_STATE);
+    return st;
    
 }

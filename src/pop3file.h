@@ -17,6 +17,8 @@ int populate_array(Client * client);
 
 char* read_file(char *file_name, Client * client);
 
+char* read_first_line_file(char *file_name, Client * client);
+ssize_t custom_getline(char **lineptr, FILE *stream);
 int remove_file(char * file_name, Client * client);
 
 #endif // POP3FILE_H
