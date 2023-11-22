@@ -22,8 +22,8 @@ int user_find(char * username);
 
 bool user_check_valid(char * username, char* password);
 
-int get_user_count();
+int get_user_count(void);
 
-struct user * get_users();
+struct user * get_users(void);
 
 #endif

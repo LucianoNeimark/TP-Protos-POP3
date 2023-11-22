@@ -69,10 +69,10 @@ bool user_check_valid(char * username, char* password){
     return false;
 }
 
-int get_user_count() {
+int get_user_count(void) {
     return user_count;
 }
 
-struct user * get_users() {
+struct user * get_users(void) {
     return users;
 }

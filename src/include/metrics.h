@@ -11,14 +11,14 @@ struct metrics {
     int bytes_transferred;
 };
 
-void metrics_init();
+void metrics_init(void);
 
-void metrics_new_connection();
+void metrics_new_connection(void);
 
-void metrics_close_connection();
+void metrics_close_connection(void);
 
 void metrics_send_bytes(int bytes_transferred);
 
-struct metrics * get_metrics();
+struct metrics * get_metrics(void);
 
 #endif

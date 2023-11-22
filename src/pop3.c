@@ -3,7 +3,7 @@
 
 
 
-// metrics_send_bytes(bytes_sent);
+
 
 //Se llama a la funcion que tenga guardado el cliente adentro. El caso default es el de leer comando salvo que se recurra a un retr un list que son multilinea
 // y retr requiere manipulacion de la salida.
@@ -100,6 +100,7 @@ unsigned int pop3WriteCommand(struct selector_key *key) {
     ssize_t count;
     uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
     count = send(client->fd, buffer, limit, 0x4000);
+    metrics_send_bytes(count);
     buffer_read_adv(&client->serverBuffer, count);
 
     if (buffer_can_read(&client->serverBuffer)) {  //Si no logre enviar todo vuelvo a entrar a enviar.
@@ -174,6 +175,7 @@ unsigned int pop3WriteFile(struct selector_key* key) {
         char *rbuffer = (char *)buffer_read_ptr(&client->serverBuffer, &size);
         printf("El buffer del server tiene: %s\n", rbuffer);
         int bytes_read = (int)send(client->fd, rbuffer, size, 0x4000);
+        metrics_send_bytes(bytes_read);
 
         buffer_read_adv(&client->serverBuffer, bytes_read);
 
@@ -281,6 +283,7 @@ unsigned int pop3WriteList(struct selector_key* key){
     ssize_t count;
     uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
     count = send(client->fd, buffer, limit, 0x4000);
+    metrics_send_bytes(count);
     buffer_read_adv(&client->serverBuffer, count);
     printf("el budder es : %s\n", buffer);
 

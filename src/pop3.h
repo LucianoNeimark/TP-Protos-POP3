@@ -13,6 +13,7 @@
 #include "selector.h"
 #include "pop3cmd.h"
 #include "include/metrics.h"
+#include "include/users.h"
 #include "stm.h"
 
 #define MAX_EMAILS 10
