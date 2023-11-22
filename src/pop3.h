@@ -57,6 +57,9 @@ typedef struct Client {
     unsigned int active_file_size;
     char* activeFile;
     bool fileDoneReading;
+    bool newLine;
+    bool seenEndOctet;
+    bool seenEndOctetR;
     FileState fileState;
 
     // state machine

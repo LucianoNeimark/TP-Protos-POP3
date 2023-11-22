@@ -337,12 +337,15 @@ stm_state_t executeCommand(pop3cmd_parser * p, struct selector_key* key) {
     while(!found && commandTable[i].handler != NULL){
         if(commandTable[i].command == p->state){
             st = (commandTable[i].handler(p->arg1, p->arg2, key));
-        
             found = true;
         }
         i++;
     }
-    if (!found) write_to_client(client, "-ERR Unknown command.\r\n");
+    if (!found){
+        write_to_client(client, "-ERR Unknown command.\r\n");
+        st = WRITE;
+    }
+    printf("hay error? %d\n", st == ERROR_STATE);
     return st;
    
 }

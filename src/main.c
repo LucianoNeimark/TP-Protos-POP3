@@ -95,6 +95,7 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
   client->stm.max_state = ERROR_STATE;
   client->stm.states = states; // para cada estado un afuncion;
   stm_init(&client->stm);
+  client->newLine = true;
 
   buffer_init(&client->serverBuffer, BUFFER_SIZE, client->serverBuffer_data);
 
