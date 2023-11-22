@@ -23,6 +23,10 @@ typedef struct file{
     bool to_delete;
 } file;
 
+typedef struct {
+    FILE *file;
+} FileState;
+
 typedef enum client_state {
     AUTHORIZATION,
     TRANSACTION,
@@ -51,12 +55,31 @@ typedef struct Client {
     unsigned int file_cant;
     unsigned int active_file_cant;
     unsigned int active_file_size;
+    char* activeFile;
+    bool fileDoneReading;
+    FileState fileState;
+
+
+
+
+    //Read and write functions
+    void(*read)(struct selector_key *key);
+    void(*write)(struct selector_key *key);
+
+
 } Client;
 
 void pop3Read(struct selector_key *key);
 void pop3Write(struct selector_key *key);
 void pop3Block(struct selector_key *key);
 void pop3Close(struct selector_key *key);
+void pop3ReadCommand(struct selector_key* key);
+void pop3ReadFile(struct selector_key* key);
+void pop3WriteFile(struct selector_key* key);
+void pop3WriteCommand(struct selector_key* key);
+
+
+ char * byte_stuffing(char* line);
 
 #endif // POP3_H
 

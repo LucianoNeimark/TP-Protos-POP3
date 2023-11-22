@@ -5,6 +5,6 @@
 
 #define UDP_BUFFER_SIZE 1024
 
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 4096
 
 #endif

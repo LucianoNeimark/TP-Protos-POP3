@@ -1,4 +1,5 @@
 #include "pop3file.h"
+#include <stdio.h>
 
 #define MAX_SIZE_PATH 1024      // TODO: 256 -> 1024 para que compile
 
@@ -12,6 +13,53 @@ static int get_user_path(char * path, char *file_name, char * user) {
 
 static int get_file_path(char * dest, char * path, char * user, char *file_name) {
     return snprintf(dest, MAX_SIZE_PATH, "%s/%s/%s", path, user, file_name);
+}
+
+#include <stdio.h>
+#include <stdlib.h>
+
+ssize_t custom_getline(char **lineptr, size_t *n, FILE *stream) {
+    if (lineptr == NULL || n == NULL || stream == NULL) {
+        return -1;
+    }
+
+    int c;
+    size_t count = 0;
+
+    // Allocate initial buffer or expand existing buffer
+    if (*lineptr == NULL || *n == 0) {
+        *n = 128;  // Initial buffer size
+        *lineptr = malloc(*n);
+        if (*lineptr == NULL) {
+            return -1;  // Allocation error
+        }
+    }
+
+    while ((c = fgetc(stream)) != EOF) {
+        if (count >= *n - 1) {
+            // Expand the buffer if needed
+            *n *= 2;
+            char *temp = realloc(*lineptr, *n);
+            if (temp == NULL) {
+                return -1;  // Allocation error
+            }
+            *lineptr = temp;
+        }
+
+        (*lineptr)[count++] = (char)c;
+
+        if (c == '\n') {
+            break;  // Stop reading at newline
+        }
+    }
+
+    if (count == 0) {
+        return -1;  // No characters read
+    }
+
+    (*lineptr)[count] = '\0';  // Null-terminate the string
+
+    return count;
 }
 
 
@@ -46,6 +94,7 @@ int populate_array(Client * client){
             f->file_id = i+1;
             f->file_size = file_info.st_size;
             client->files[i] = *f;
+            client->files[i].to_delete = false;
             client->active_file_size += f->file_size;
             i++;
             free(user_path);
@@ -96,6 +145,50 @@ char* read_file(char *file_name, Client * client) {
     close(file_descriptor);
 
     return file_content;
+}
+
+char* read_first_line_file(char *file_name, Client * client){
+     // Check if the file is already open
+
+    char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
+    get_file_path(file_path, args->directory, client->name, file_name);
+    
+    if (client->fileState.file == NULL) {
+
+        
+
+        // Open the file
+        client->fileState.file = fopen(file_path, "r");
+        if (client->fileState.file == NULL) {
+            perror("Error opening file");
+            return NULL;
+        }
+
+        /// +OK
+        char * ok = malloc(sizeof(char) * 4);
+        strcpy(ok, "+OK");
+        return ok;
+    }
+
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t bytesRead = custom_getline(&line, &len, client->fileState.file);
+
+    if (bytesRead == -1) {
+        // Close the file when we reach the end
+        fclose(client->fileState.file);
+        client->fileState.file = NULL;
+        free(line);
+        return NULL;
+    }
+
+    // Remove newline character
+    if (line[bytesRead - 1] == '\n') {
+        line[bytesRead - 1] = '\0';
+    }
+
+    return line;
+
 }
 
 int remove_file(char * file_name, Client * client) {
