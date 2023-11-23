@@ -6,7 +6,7 @@ void write_to_client(Client * client, char * message){
     uint8_t *buffer;
     ssize_t count;
 
-    printf("Sending: %s\n", message);
+    // printf("Sending: %s\n", message);
     buffer = buffer_write_ptr(&client->serverBuffer, &limit);
     count = snprintf((char *) buffer, limit, "%s", message);
     buffer_write_adv(&client->serverBuffer, count);
@@ -16,7 +16,8 @@ stm_state_t handleQuitNonAuth(char * arg1, char * arg,  struct selector_key* key
     struct Client *client = key->data;
 
     write_to_client(client, "+OK POP3 server signing off\r\n");
-    
+    LogInfo("QUIT: Signed off from %s", sockaddr_to_human_buffered((struct sockaddr*)&client->addr));
+
     client->state = CLOSED;
     return WRITE;
 }
@@ -37,6 +38,7 @@ stm_state_t handleQuitAuth(char * arg1, char * arg, struct selector_key* key) {
     }
 
     if (error_removing) {
+        LogError("QUIT: Some deleted messages not removed");
         write_to_client(client, "-ERR some deleted messages not removed\r\n");
         return WRITE;
     }
@@ -47,6 +49,7 @@ stm_state_t handleQuitAuth(char * arg1, char * arg, struct selector_key* key) {
     } else {
         sprintf(message, "+OK POP3 server signing off (%d message%s left)\r\n", client->file_cant, client->file_cant == 1? "":"s");
     }
+    LogInfo("QUIT: User %s signed off from %s", client->name, sockaddr_to_human_buffered((struct sockaddr*)&client->addr));
 
     write_to_client(client, message);
     free(message);
@@ -69,6 +72,7 @@ stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
     struct Client *client = key->data;
 
     if (client->files[0].file_id == 0) {
+        LogError("LIST: Error opening user folder");
         write_to_client(client, "-ERR Error opening user folder.\r\n");
         return WRITE;
     }
@@ -81,8 +85,10 @@ stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
         for(unsigned int i = 0; i < client->file_cant; i++){
             if(client->files[i].file_id == atoi(arg1)){
                 if (!client->files[i].to_delete) {
+                    LogInfo("LIST: message %d has %d octets", atoi(arg1), client->files[i].file_size);
                     sprintf(message,"+OK %d %d\r\n", client->files[i].file_id, client->files[i].file_size);
                 } else {
+                    LogError("LIST: message %d is deleted", atoi(arg1));
                     sprintf(message,"-ERR message is deleted\r\n");
                 }
                 write_to_client(client, message);
@@ -90,6 +96,7 @@ stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
                 return WRITE;
             }
         }
+        LogError("LIST: message %d not found", atoi(arg1));
         sprintf(message,"-ERR no such message \r\n");
         write_to_client(client, message);
         free(message);
@@ -102,6 +109,7 @@ stm_state_t handleRetr(char * arg1, char * arg2, struct selector_key* key) {
     for(unsigned int i = 0; i < client->file_cant; i++){
         if(client->files[i].file_id == atoi(arg1) && !client->files[i].to_delete){
             char * message = malloc(100);
+            LogInfo("RETR: message %d sent. Has %d octets", atoi(arg1), client->files[i].file_size);
             sprintf(message, "+OK %d octets\r\n", client->files[i].file_size);
             write_to_client(client, message);
             client->activeFile = client->files[i].file_name;
@@ -112,7 +120,7 @@ stm_state_t handleRetr(char * arg1, char * arg2, struct selector_key* key) {
             return WRITE_FILE;
         }
     }
-
+    LogError("RETR: message %d not found", atoi(arg1));
     write_to_client(client, "-ERR no such message\r\n");
     return WRITE;
 }
@@ -127,8 +135,10 @@ stm_state_t handleDele(char * arg1, char * arg2, struct selector_key* key) {
                 client->files[i].to_delete = true;
                 client->active_file_cant--;
                 client->active_file_size -= client->files[i].file_size;
+                LogInfo("Message %d deleted", client->files[i].file_id);
                 sprintf(message, "+OK message %d deleted\r\n", client->files[i].file_id);
             } else {
+                LogError("Message %d already deleted", client->files[i].file_id);
                 sprintf(message, "-ERR message %d already deleted\r\n", client->files[i].file_id);
             }
 
@@ -158,6 +168,7 @@ stm_state_t handleRset(char * arg1, char * arg2, struct selector_key* key) {
         }
     }
     char * message = malloc(100);
+    LogInfo("RSET: %d messages undeleted", client->file_cant);
     sprintf(message, "+OK maildrop has %d messages (%d octets)\r\n", client->active_file_cant, client->active_file_size);
     write_to_client(client, message);
     free(message);   
@@ -195,12 +206,14 @@ stm_state_t handlePass(char * arg1, char * arg2, struct selector_key* key) {
         write_to_client(client, "-ERR No username given.\r\n");
     } else {
         if (user_check_valid(client->name, arg1)) {
+            LogInfo("User \"%s\" logged in from %s", client->name, sockaddr_to_human_buffered((struct sockaddr*)&client->addr));
             write_to_client(client, "+OK Logged in.\r\n");
             client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
             memcpy(client->password, arg1, strlen(arg1) + 1);
             client->state = TRANSACTION;
             populate_array(client);
-        } else {
+        } else {            
+            LogError("Authentication failed for user \"%s\" from %s", client->name, sockaddr_to_human_buffered((struct sockaddr*)&client->addr));
             free(client->name);
             client->name = NULL;
             write_to_client(client, "-ERR [AUTH] Authentication failed.\r\n");
@@ -292,7 +305,6 @@ stm_state_t executeCommand(pop3cmd_parser * p, struct selector_key* key) {
         write_to_client(client, "-ERR Unknown command.\r\n");
         st = WRITE;
     }
-    printf("hay error? %d\n", st == ERROR_STATE);
     return st;
    
 }

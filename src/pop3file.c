@@ -44,7 +44,6 @@ ssize_t custom_getline(char **lineptr, FILE *file) {
         return count;
     }
     (*lineptr)[count] = '\0';  // Null-terminate the string
-    printf("lineptr es : %s\n", *lineptr);
     return count;
 }
 
@@ -56,14 +55,14 @@ int populate_array(Client * client){
     char * path = malloc(sizeof(char) * MAX_SIZE_PATH);
 
     if(get_path(path, client->name) == -1) {
-        printf("Error al obtener el path\n");
+        LogError("Unable to get path");
         return -1;
     }
 
     DIR * direc = opendir(path);
 
     if(direc == NULL) {
-        printf("Error al abrir el directorio\n");
+        LogError("Unable to open directory %s", path);
         return -1;
     }
 
@@ -143,22 +142,22 @@ char* read_first_line_file(char *file_name, Client * client){
         // Open the file
         client->fileState.file = fopen(file_path, "r");
         if (client->fileState.file == NULL) {
-            perror("Error opening file");
+            LogError("RETR: Unable to open file");
             return NULL;
         }
+        LogInfo("RETR: Opened file %s", file_path);
     }
 
     char *line = NULL;
     ssize_t bytesRead = custom_getline(&line, client->fileState.file);
-    printf("la lunea es : %s\n", line);
-    printf("Lei %zu bytes\n", bytesRead);
+
     if(bytesRead < 0){
-        perror("Error reading file");
+        LogError("RETR: Unable to read line from file");
         // todo return ERROR!!!!!!!!!!!!!!!!!!!
     }
 
     if (bytesRead == 0) {
-        printf("leu 0 bytes!!!\n\n");
+        LogInfo("RETR: Reached end of file. Closing file");
         // Close the file when we reach the end
         fclose(client->fileState.file);
         client->fileState.file = NULL;

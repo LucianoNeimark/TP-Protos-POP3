@@ -2,12 +2,14 @@
 #define POP3_H
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdint.h>
+#include <stdlib.h>
+#include <signal.h>
 #include <stdbool.h>
-#include "buffer.h"
+#include <unistd.h>
+
+#include <sys/socket.h>
+
 #include "nuestro-parser.h"
 #include "netutils.h"
 #include "selector.h"
@@ -15,6 +17,7 @@
 #include "include/metrics.h"
 #include "include/users.h"
 #include "stm.h"
+
 
 #define MAX_EMAILS 10
 
@@ -37,6 +40,8 @@ typedef enum client_state {
 } client_state;
 
 typedef struct Client {
+    struct sockaddr_storage addr;
+
     uint32_t fd;
 
     struct buffer serverBuffer;

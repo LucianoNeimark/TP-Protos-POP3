@@ -24,8 +24,8 @@ port(const char *s) {
 static void
 directory(char * dest, char * src){
 
-    LogInfo("Source port: %s\n",src);
-    printf("Destination port: %s\n",dest);
+    LogInfo("Source port: %s",src);
+    LogInfo("Destination port: %s",dest);
     strcpy(dest,src);
 }
 

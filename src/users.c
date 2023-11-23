@@ -57,7 +57,7 @@ int user_find(char * username) {
 bool user_check_valid(char * username, char* password){
     //check if in the users structure the username matches with the password
     for(int i = 0; i < user_count; i++){
-        printf("Username - password: %s - %s\n", username, password);
+        // printf("Username - password: %s - %s\n", username, password);
         
         if(strcmp(username, users[i].name) == 0){
             if(strcmp(password, users[i].pass) == 0){

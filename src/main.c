@@ -97,6 +97,7 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
         goto handle_error;
     }
 
+    client->addr = client_addr;
     client->name = NULL;
     client->fd = client_fd;
     client->state = AUTHORIZATION;
@@ -143,7 +144,7 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
 
     metrics_new_connection();
 
-    LogInfo("New client connected with fd %d", client->fd);
+    LogInfo("New client connected from %s", sockaddr_to_human_buffered((struct sockaddr*)&client_addr));
 
     return;
 
