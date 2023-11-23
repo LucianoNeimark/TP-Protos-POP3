@@ -60,6 +60,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
 
     if (bytes_read == 0 && !buffer_can_read(&client->clientBuffer)) {
         state = ERROR_STATE;
+        status = SELECTOR_SUCCESS;
         goto error_handling;
     }
 
@@ -67,6 +68,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
 
     if (state == ERROR_STATE) {
         printf("ESTE\n");
+        status = SELECTOR_SUCCESS;
         goto error_handling;
     }
 
@@ -83,7 +85,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
 
     error_handling:
 
-        if (state == ERROR)
+        if (state == ERROR_STATE)
         status = selector_set_interest_key(key, OP_WRITE);
         if (status != SELECTOR_SUCCESS) {
             selector_set_interest_key(key, OP_NOOP);

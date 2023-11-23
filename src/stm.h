@@ -30,7 +30,7 @@ typedef enum {
     WRITE_LIST,
     CLOSE_STATE,
     ERROR_STATE
-}stm_state_t;
+} stm_state_t;
 
 struct state_machine {
     /** declaración de cual es el estado inicial */
