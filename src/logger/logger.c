@@ -1,13 +1,18 @@
 #include "logger.h"
 #include <stdarg.h>
 #include <stdio.h>
+#include <time.h>
 
 /**
  * Implementación de "logger.h".
  */
 
 void Log(FILE * const stream, const char * prefix, const char * const format, const char * suffix, va_list arguments) {
+    time_t loginternal_time = time(NULL); \
+    struct tm loginternal_tm = *localtime(&loginternal_time); \
 	fprintf(stream, "%s", prefix);
+    //agregar la fecha y la hora
+    fprintf(stream, "[%d-%02d-%02d %02d:%02d:%02d] ", loginternal_tm.tm_year + 1900, loginternal_tm.tm_mon + 1, loginternal_tm.tm_mday, loginternal_tm.tm_hour, loginternal_tm.tm_min, loginternal_tm.tm_sec);
 	vfprintf(stream, format, arguments);
 	fprintf(stream, "%s", suffix);
 }

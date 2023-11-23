@@ -49,7 +49,7 @@ struct POP3args *args;
 
 static void sigterm_handler(const int signal)
 {
-    LogInfo("signal %d, cleaning up and exiting\n", signal);
+    LogInfo("Signal %d, cleaning up and exiting", signal);
     done = true;
     exit(0);
 }
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
     LogInfo("Starting POP3 server on %s:%d", args->POP3_addr, args->POP3_port);
 
     const int server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    
+
     const struct selector_init init = {
         .signal = SIGALRM,
         .select_timeout = {
@@ -184,6 +184,8 @@ int main(int argc, char **argv)
 
     fd_selector selector = NULL;
     selector_status selectStatus = selector_init(&init);
+
+    int managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
 
     if (server < 0)
     {
@@ -209,9 +211,8 @@ int main(int argc, char **argv)
         goto finally;
     }
 
-    LogRaw("Listening on TCP %s:%d\n", args->POP3_addr, args->POP3_port);
+    LogInfo("Listening on TCP %s:%d", args->POP3_addr, args->POP3_port);
 
-    int managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
     if (managerSocket == -1) {
         // err_msg = "Unable to setup manager socket";        
         goto finally;
@@ -267,7 +268,6 @@ int main(int argc, char **argv)
         }
     }
 
-    // err_msg = 0;
     ret = 0;
 
 finally:
@@ -291,9 +291,9 @@ finally:
     {
         close(server);
     }
-    // if(managerSocket >= 0){
-    //     close(managerSocket);
-    // }
+    if(managerSocket >= 0){
+        close(managerSocket);
+    }
     return ret;
 }
 
@@ -328,7 +328,7 @@ static int setupManagerSocket(char *addr, int port)
         goto manager_error;
     }
 
-    LogRaw("Manager listening on UDP %s:%d\n", addr, port);
+    LogInfo("Manager listening on UDP %s:%d", addr, port);
 
     return managerSocket;
 

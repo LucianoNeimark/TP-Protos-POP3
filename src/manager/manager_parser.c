@@ -11,6 +11,8 @@ manager_cmd_parser * manager_parser_init(void) {
         ret->finished = false;
         ret->line_size = 0;
         ret->arg1 = calloc(BUFFER_SIZE, sizeof(char));
+    } else {
+        ret->state = M_ERROR;
     }
     return ret;
 }

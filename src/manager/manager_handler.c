@@ -38,20 +38,33 @@ void manager_handle_connection(struct selector_key *key) {
                             (struct sockaddr *) &the_manager.manager_addr, &the_manager.manager_addr_len);
 
     if (bytes_read <= 0) {
-        fprintf(stdout, "Error receiving message from manager: %s", strerror(errno));
+        LogError("Unable to recieve message from manager: %s", strerror(errno));
         manager_parser_destroy(the_manager.parser);
         return ;
     }
 
     the_manager.parser = manager_parser_init();
 
-    manager_parser_analyze(the_manager.parser, the_manager.manager_buffer, the_manager.manager_addr_len);
+    // if(the_manager.parser->state == M_ERROR) {
+    //     LogError("Unable to initialize manager parser");
+    //     return ;
+    // }
 
-    execute_manager_command(&the_manager);
+    if(manager_parser_analyze(the_manager.parser, the_manager.manager_buffer, the_manager.manager_addr_len) == M_ERROR) {
+        // LogError("Unable to parse manager message");
+        // manager_parser_destroy(the_manager.parser);
+        // return ;
+    }
+
+    if(execute_manager_command(&the_manager) == M_ERROR) {
+        // LogError("Unable to execute manager command");
+        // manager_parser_destroy(the_manager.parser);
+        // return ;
+    }
 
     if (sendto(key->fd, the_manager.server_buffer, sizeof(the_manager.server_buffer), 0,
                (struct sockaddr *) &the_manager.manager_addr, the_manager.manager_addr_len) < 0) {
-        fprintf(stdout, "Error sending manager message to client: %s", strerror(errno));
+        LogError("Unable to send manager message to client: %s", strerror(errno));
     }
 
     manager_parser_destroy(the_manager.parser);
