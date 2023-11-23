@@ -34,8 +34,6 @@
 
 static bool done = false;
 
-static int setupManagerSocket(char *addr, int port);
-
 // llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
 //  Donde escribiamos ahora copiamos al buffer y seteamos la intencion
 //  Cuando me toca se llama a estos metodos de abajo dependiendo la intencion que haya seteado antes.

@@ -1,0 +1,90 @@
+directory: /Users/nicolastordomar/Desktop/mailDir
+[INFO] [2023-11-23 18:27:52] Source port: /Users/nicolastordomar/Desktop/mailDir
+[INFO] [2023-11-23 18:27:52] Destination port: 
+POP3 addr: ::
+[INFO] [2023-11-23 18:27:52] Starting POP3 server on :::1110
+Manager listening on UDP 127.0.0.1:9090
+[INFO] [2023-11-23 18:27:52] Listening on TCP :::1110
+[DEBUG] [2023-11-23 18:28:02] Initializing POP3 parser...
+[DEBUG] [2023-11-23 18:28:02] POP3 parser initialized
+[INFO] [2023-11-23 18:28:02] New client connected from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:05] Recieved command user from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:07] Recieved command pass from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:07] User "ntordomar" logged in from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:08] Recieved command list from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:10] Recieved command retr from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:10] RETR: message 1 sent. Has 6656 octets
+[INFO] [2023-11-23 18:28:10] RETR: Opened file /Users/nicolastordomar/Desktop/mailDir/ntordomar/untitled
+[INFO] [2023-11-23 18:28:10] RETR: Reached end of file. Closing file
+[INFO] [2023-11-23 18:28:12] Recieved command retr from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:12] RETR: message 1 sent. Has 6656 octets
+[INFO] [2023-11-23 18:28:12] RETR: Opened file /Users/nicolastordomar/Desktop/mailDir/ntordomar/untitled
+[INFO] [2023-11-23 18:28:12] RETR: Reached end of file. Closing file
+[INFO] [2023-11-23 18:28:13] Recieved command retr from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:13] RETR: message 1 sent. Has 6656 octets
+[INFO] [2023-11-23 18:28:13] RETR: Opened file /Users/nicolastordomar/Desktop/mailDir/ntordomar/untitled
+[INFO] [2023-11-23 18:28:13] RETR: Reached end of file. Closing file
+[INFO] [2023-11-23 18:28:17] Recieved command list from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:18] Recieved command list from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:19] Recieved command list from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:19] Recieved command 
+st from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:19] Recieved command list from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:19] Recieved command 
+st from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:20] Recieved command quit from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:20] Recieved command 
+it from ::ffff:127.0.0.1:50918
+[INFO] [2023-11-23 18:28:20] QUIT: User ntordomar signed off from ::ffff:127.0.0.1:50918
+Entre al close connection
+[INFO] [2023-11-23 18:28:20] Connection closed from ::ffff:127.0.0.1:50918
+[DEBUG] [2023-11-23 18:28:22] Initializing POP3 parser...
+[DEBUG] [2023-11-23 18:28:22] POP3 parser initialized
+[INFO] [2023-11-23 18:28:22] New client connected from ::ffff:127.0.0.1:50920
+[INFO] [2023-11-23 18:28:25] Recieved command user from ::ffff:127.0.0.1:50920
+[INFO] [2023-11-23 18:28:26] Recieved command dele from ::ffff:127.0.0.1:50920
+[INFO] [2023-11-23 18:28:32] Recieved command pass from ::ffff:127.0.0.1:50920
+[INFO] [2023-11-23 18:28:32] User "ntordomar" logged in from ::ffff:127.0.0.1:50920
+[INFO] [2023-11-23 18:28:34] Recieved command dele from ::ffff:127.0.0.1:50920
+[INFO] [2023-11-23 18:28:34] Message 1 deleted
+[INFO] [2023-11-23 18:28:36] Recieved command quit from ::ffff:127.0.0.1:50920
+[INFO] [2023-11-23 18:28:36] QUIT: User ntordomar signed off from ::ffff:127.0.0.1:50920
+Entre al close connection
+[INFO] [2023-11-23 18:28:36] Connection closed from ::ffff:127.0.0.1:50920
+[DEBUG] [2023-11-23 18:28:38] Initializing POP3 parser...
+[DEBUG] [2023-11-23 18:28:38] POP3 parser initialized
+[INFO] [2023-11-23 18:28:38] New client connected from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:41] Recieved command user from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:41] Recieved command 
+er from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:43] Recieved command pass from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:43] User "ntordomar" logged in from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:44] Recieved command list from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:45] Recieved command retr from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:50] Recieved command sadd from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:50] Recieved command d
+dd from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:51] Recieved command sd
+d from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:51] Recieved command df
+d from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:52] Recieved command fd
+d from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:52] Recieved command df
+d from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:52] Recieved command df
+d from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:52] Recieved command df
+d from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:55] Recieved command ffff from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:28:58] Recieved command flis from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:29:00] Recieved command list from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:29:00] Recieved command 
+st from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:29:03] Recieved command quit from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:29:03] Recieved command 
+it from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:29:03] QUIT: User ntordomar signed off from ::ffff:127.0.0.1:50932
+Entre al close connection
+[INFO] [2023-11-23 18:29:03] Connection closed from ::ffff:127.0.0.1:50932
+[INFO] [2023-11-23 18:30:00] Signal 2, cleaning up and exiting
