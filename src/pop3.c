@@ -81,13 +81,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
 
     stm_state_t res =  parseCommandInBuffer(key);
 
-
-
-    // if (res == ERROR_STATE) {
-    //     printf("El cliente se descasdaasdasdasdonecto\n");
-    //     return ERROR_STATE;
-    // }
-
+    
 
     if (buffer_can_read(&client->serverBuffer)) { // Si despues de parsear el comando tengo algo para enviarle hay que escribir
         selector_set_interest_key(key, OP_WRITE);

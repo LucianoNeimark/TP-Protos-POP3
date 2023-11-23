@@ -45,28 +45,39 @@ void manager_handle_connection(struct selector_key *key) {
 
     the_manager.parser = manager_parser_init();
 
-    // if(the_manager.parser->state == M_ERROR) {
-    //     LogError("Unable to initialize manager parser");
-    //     return ;
-    // }
-
-    if(manager_parser_analyze(the_manager.parser, the_manager.manager_buffer, the_manager.manager_addr_len) == M_ERROR) {
-        // LogError("Unable to parse manager message");
-        // manager_parser_destroy(the_manager.parser);
-        // return ;
+    if(the_manager.parser->state == M_ERROR) {
+        LogError("Unable to initialize manager parser");
+        return ;
     }
 
-    if(execute_manager_command(&the_manager) == M_ERROR) {
-        // LogError("Unable to execute manager command");
-        // manager_parser_destroy(the_manager.parser);
-        // return ;
-    }
+    /*manager_cmd_state parser_state = */manager_parser_analyze(the_manager.parser, the_manager.manager_buffer, the_manager.manager_addr_len);
+
+    manager_cmd_state execute_state = execute_manager_command(&the_manager);
 
     if (sendto(key->fd, the_manager.server_buffer, sizeof(the_manager.server_buffer), 0,
                (struct sockaddr *) &the_manager.manager_addr, the_manager.manager_addr_len) < 0) {
         LogError("Unable to send manager message to client: %s", strerror(errno));
+        manager_parser_destroy(the_manager.parser);
+        return;
     }
 
+    // if(parser_state == M_ERROR) {
+    //     LogError("Unable to parse manager command");
+    //     manager_parser_destroy(the_manager.parser);
+    //     return ;
+    // }
+
+    if(execute_state == M_ERROR) {
+        LogError("Unable to execute manager command");
+        manager_parser_destroy(the_manager.parser);
+        return ;
+    }
+    
+    char command[UDP_BUFFER_SIZE];
+    memcpy(command, the_manager.manager_buffer, strlen((char *)the_manager.manager_buffer) - 1);
+    command[strlen((char *)the_manager.manager_buffer) - 1] = '\0';
+
+    LogInfo("Recieved manager message: %s", command);
     manager_parser_destroy(the_manager.parser);
 }
 
@@ -81,9 +92,12 @@ manager_cmd_state execute_manager_command(manager_state * manager) {
         }
         i++;
     }
+    char error_buffer[UDP_BUFFER_SIZE - 1];
+    memcpy(error_buffer, manager->manager_buffer, strlen((char *)manager->manager_buffer) - 1);
+    error_buffer[strlen((char *)manager->manager_buffer) - 1] = '\0';
+    LogError("Unknown command: %s", error_buffer);
     char * unknown = "-ERR Unknown command. Use CAPA for available commands.\r\n";
     memcpy(manager->server_buffer, unknown, strlen(unknown));
-
     return manager->parser->state;
 }
 

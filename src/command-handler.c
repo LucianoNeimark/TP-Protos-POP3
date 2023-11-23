@@ -210,23 +210,6 @@ stm_state_t handlePass(char * arg1, char * arg2, struct selector_key* key) {
 }
 
 
-// estos son opcionales!!
-stm_state_t handleTop(char * arg1, char * arg2, struct selector_key* key) {
-    printf("TOP command!\n");
-    return READ;
-}
-
-stm_state_t handleUidl(char * arg1, char * arg2, struct selector_key* key) {
-    printf("UIDL command!\n");
-    return READ;
-}
-
-stm_state_t handleApop(char * arg1, char * arg2, struct selector_key* key) {
-    printf("APOP command!\n");
-    return READ;
-    
-}
-
 stm_state_t handleCapaNonAuth(char * arg1, char * arg2, struct selector_key* key) {
     struct Client *client = key->data;
     char * message = "+OK Capability list follows\r\n"
@@ -234,8 +217,6 @@ stm_state_t handleCapaNonAuth(char * arg1, char * arg2, struct selector_key* key
                      "QUIT\r\n"
                      "USER\r\n"
                      "PASS\r\n"
-                     "TOP\r\n"
-                     "UIDL\r\n"
                      ".\r\n";
     write_to_client(client, message);
     return WRITE;
@@ -252,35 +233,16 @@ stm_state_t handleCapaAuth(char * arg1, char * arg2, struct selector_key* key) {
                      "DELE\r\n"
                      "NOOP\r\n"
                      "RSET\r\n"
-                     "TOP\r\n"
-                     "UIDL\r\n"
-                     "APOP\r\n"
                      ".\r\n";
     write_to_client(client, message);
     return WRITE;
 }
 
-// CommandInfo commandTable[] = {
-//     {QUIT, handleQuit},
-//     {STAT, handleStat},
-//     {LIST, handleList},
-//     {RETR, handleRetr},
-//     {DELE, handleDele},
-//     {NOOP, handleNoop},
-//     {RSET, handleRset},
-//     {TOP, handleTop},
-//     {UIDL, handleUidl},
-//     {USER, handleUser},
-//     {PASS, handlePass},
-//     {APOP, handleApop}
-// };
 
 CommandInfo nonAuthTable[] = {
     {QUIT, handleQuitNonAuth},
     {USER, handleUser},
     {PASS, handlePass},
-    {TOP, handleTop},
-    {UIDL, handleUidl},
     {CAPA, handleCapaNonAuth},
     {0, NULL}
 };
@@ -294,9 +256,6 @@ CommandInfo authTable[] = {
     {DELE, handleDele},
     {NOOP, handleNoop},
     {RSET, handleRset},
-    {TOP, handleTop},
-    {UIDL, handleUidl},
-    {APOP, handleApop},
     {CAPA, handleCapaAuth},
     {0, NULL}
 };

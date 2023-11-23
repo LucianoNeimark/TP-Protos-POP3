@@ -109,6 +109,11 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
     client->newLine = true;
     client->lastFileList = -1;
 
+    if(client->parser == NULL) {
+        err_msg = "Unable to initialize POP3 parser";
+        goto handle_error;
+    }
+
     buffer_init(&client->serverBuffer, BUFFER_SIZE, client->serverBuffer_data);
 
     buffer_init(&client->clientBuffer, BUFFER_SIZE, client->clientBuffer_data);
@@ -138,17 +143,21 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
 
     metrics_new_connection();
 
+    LogInfo("New client connected with fd %d", client->fd);
+
     return;
 
 handle_error:
-    if(err_msg){
+    if (err_msg)
+    {
         LogError(err_msg);
     }
     if (client_fd != -1)
     {
         close(client_fd);
     }
-    if (client != NULL) {
+    if (client != NULL)
+    {
         free(client);
     }
 }
@@ -213,8 +222,9 @@ int main(int argc, char **argv)
 
     LogInfo("Listening on TCP %s:%d", args->POP3_addr, args->POP3_port);
 
-    if (managerSocket == -1) {
-        // err_msg = "Unable to setup manager socket";        
+    if (managerSocket == -1)
+    {
+        // err_msg = "Unable to setup manager socket";
         goto finally;
     }
 
@@ -231,7 +241,8 @@ int main(int argc, char **argv)
     }
 
     selector = selector_new(SELECTOR_SIZE);
-    if (selector == NULL) {
+    if (selector == NULL)
+    {
         err_msg = "Unable to create selector";
         goto finally;
     }
@@ -244,7 +255,8 @@ int main(int argc, char **argv)
     };
 
     selectStatus = selector_register(selector, server, &passiveHandler, OP_READ, NULL);
-    if (selectStatus != SELECTOR_SUCCESS) {
+    if (selectStatus != SELECTOR_SUCCESS)
+    {
         err_msg = "Unable to register server socket";
         goto finally;
     }
@@ -256,14 +268,16 @@ int main(int argc, char **argv)
         .handle_block = NULL};
 
     selectStatus = selector_register(selector, managerSocket, &managerHandler, OP_READ, NULL);
-    if (selectStatus != SELECTOR_SUCCESS) {
+    if (selectStatus != SELECTOR_SUCCESS)
+    {
         goto finally;
     }
 
     while (!done)
     {
         selectStatus = selector_select(selector);
-        if (selectStatus != SELECTOR_SUCCESS) {
+        if (selectStatus != SELECTOR_SUCCESS)
+        {
             goto finally;
         }
     }
@@ -271,9 +285,11 @@ int main(int argc, char **argv)
     ret = 0;
 
 finally:
-    if(selectStatus != SELECTOR_SUCCESS){
+    if (selectStatus != SELECTOR_SUCCESS)
+    {
         LogError("Error in selector: %s", selector_error(selectStatus));
-        if (selectStatus == SELECTOR_IO) {
+        if (selectStatus == SELECTOR_IO)
+        {
             LogRaw("More info: %s", strerror(errno));
         }
     }
@@ -291,7 +307,8 @@ finally:
     {
         close(server);
     }
-    if(managerSocket >= 0){
+    if (managerSocket >= 0)
+    {
         close(managerSocket);
     }
     return ret;
@@ -299,7 +316,7 @@ finally:
 
 static int setupManagerSocket(char *addr, int port)
 {
-    const char * err_msg = 0;
+    const char *err_msg = 0;
     const int managerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     if (managerSocket < 0)
