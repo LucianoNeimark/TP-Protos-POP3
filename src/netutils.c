@@ -10,6 +10,8 @@
 
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
+static char BUFFER[INET6_ADDRSTRLEN];
+
 extern const char *
 sockaddr_to_human(char *buff, const size_t buffsize,
                   const struct sockaddr *addr) {
@@ -52,6 +54,10 @@ sockaddr_to_human(char *buff, const size_t buffsize,
     buff[buffsize - 1] = 0;
 
     return buff;
+}
+
+const char* sockaddr_to_human_buffered(const struct sockaddr *addr) {
+    return sockaddr_to_human(BUFFER, sizeof(BUFFER), addr);
 }
 
 int

@@ -2,7 +2,9 @@
 
 manager_cmd_state manager_parser_feed(manager_cmd_parser * p, const uint8_t c);
 
+//the parser is initialized every time a new command is received
 manager_cmd_parser * manager_parser_init(void) {
+    // LogDebug("Initializing manager parser...");
     manager_cmd_parser *ret = malloc(sizeof(*ret));
     
     if(ret != NULL) {
@@ -11,7 +13,10 @@ manager_cmd_parser * manager_parser_init(void) {
         ret->finished = false;
         ret->line_size = 0;
         ret->arg1 = calloc(BUFFER_SIZE, sizeof(char));
+    } else {
+        ret->state = M_ERROR;
     }
+    // LogDebug("Manager parser initialized");
     return ret;
 }
 
@@ -63,7 +68,6 @@ manager_cmd_state manager_parser_analyze(manager_cmd_parser * p, uint8_t * input
     }
     
     free(aux);
-
     return p->state;
 }
 
@@ -96,10 +100,12 @@ manager_cmd_state manager_parser_feed(manager_cmd_parser * p, uint8_t c) {
 }
 
 void manager_parser_destroy(manager_cmd_parser * p) {
+    // LogDebug("Destroying manager parser...");
     if(p != NULL) {
         if(p->arg1 != NULL) free(p->arg1);
         free(p);
     }
+    // LogDebug("Manager parser destroyed");
 }
 
 void manager_parser_reset(manager_cmd_parser * p) {

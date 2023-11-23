@@ -3,6 +3,7 @@
 
 
 pop3cmd_parser * parser_init(void) {
+    LogDebug("Initializing POP3 parser...");
     pop3cmd_parser *ret = malloc(sizeof(*ret));
     
     if(ret != NULL) {
@@ -12,7 +13,10 @@ pop3cmd_parser * parser_init(void) {
         ret->line_size = 0;
         ret->arg1 = calloc(BUFFER_SIZE, sizeof(char));
         ret->arg2 = calloc(BUFFER_SIZE, sizeof(char));
+    } else {
+        return NULL;
     }
+    LogDebug("POP3 parser initialized");
     return ret;
 }
 
@@ -56,7 +60,9 @@ void process_buffer(pop3cmd_parser * p) {
         memcpy(p->arg2,p->line,p->line_size);
     } else {
         p->state = ERROR;
+        // LogError("Error parsing command %s from %s", p->line, sockaddr_to_human_buffered((struct sockaddr*)&p->addr));
     }
+    // LogInfo("Command parsed: %s", p->line);
 }
 
 pop3cmd_state parser_feed(pop3cmd_parser * p, uint8_t c) {

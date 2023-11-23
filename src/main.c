@@ -28,14 +28,17 @@
 #include "include/socket_setup.h"
 #include "args.h"
 #include "selector.h"
+#include "logger/logger.h"
 
 #define SELECTOR_SIZE 1024
 
 static bool done = false;
 
-//llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
-// Donde escribiamos ahora copiamos al buffer y seteamos la intencion
-// Cuando me toca se llama a estos metodos de abajo dependiendo la intencion que haya seteado antes.
+static int setupManagerSocket(char *addr, int port);
+
+// llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
+//  Donde escribiamos ahora copiamos al buffer y seteamos la intencion
+//  Cuando me toca se llama a estos metodos de abajo dependiendo la intencion que haya seteado antes.
 static const fd_handler pop3Handlers = {
     .handle_read = pop3Read,
     .handle_write = pop3Write,
@@ -43,10 +46,11 @@ static const fd_handler pop3Handlers = {
     .handle_close = pop3Close,
 };
 
-struct POP3args* args;
+struct POP3args *args;
 
-static void sigterm_handler(const int signal) {
-    printf("signal %d, cleaning up and exiting\n",signal);
+static void sigterm_handler(const int signal)
+{
+    LogInfo("Signal %d, cleaning up and exiting", signal);
     done = true;
     exit(0);
 }
@@ -56,12 +60,12 @@ static void sigterm_handler(const int signal) {
  * que acepta sockets y los hilos que procesa cada conexión
  */
 
-struct connection {
-  int fd; 
-  socklen_t addrlen;
-  struct sockaddr_in6 addr;
+struct connection
+{
+    int fd;
+    socklen_t addrlen;
+    struct sockaddr_in6 addr;
 };
-
 
 // #include "socks5.h
 
@@ -72,304 +76,252 @@ struct connection {
  * @param caddr información de la conexión entrante.
  */
 
-static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ struct selector_key *key) {
+static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ struct selector_key *key)
+{
+    const char *err_msg = 0;
 
+    struct sockaddr_storage client_addr;
+    socklen_t client_addr_len = sizeof(client_addr);
 
-  struct sockaddr_storage client_addr;
-  socklen_t client_addr_len = sizeof(client_addr);
+    int client_fd = accept(key->fd, (struct sockaddr *)&client_addr, &client_addr_len);
+    Client *client = calloc(1, (sizeof(struct Client)));
 
-  int client_fd = accept(key->fd, (struct sockaddr *)&client_addr, &client_addr_len);
+    if (client_fd == -1)
+    {
+        err_msg = "Unable to accept connection";
+        goto handle_error;
+    }
 
-  if (client_fd == -1) {
-    printf("%s\n", "Error al aceptar cliente");
-  }
+    if (client == NULL)
+    {
+        err_msg = "Unable to allocate memory for client";
+        goto handle_error;
+    }
 
-  //creo el client
-  Client *client = calloc(1, (sizeof(struct Client)));
+    client->addr = client_addr;
+    client->name = NULL;
+    client->fd = client_fd;
+    client->state = AUTHORIZATION;
+    client->parser = pop3cmd_parser_init();
+    client->fileState.file = NULL;
+    client->stm.initial = WRITE;
+    client->stm.max_state = ERROR_STATE;
+    client->stm.states = states; // para cada estado un afuncion;
+    stm_init(&client->stm);
+    client->newLine = true;
+    client->lastFileList = -1;
 
-  if (client == NULL) {printf("%s\n", "Error al crear cliente");}
+    if(client->parser == NULL) {
+        err_msg = "Unable to initialize POP3 parser";
+        goto handle_error;
+    }
 
-  client->name = NULL;
-  client->fd = client_fd;
-  client->state = AUTHORIZATION;
-  client->parser = pop3cmd_parser_init();
-  client->fileState.file = NULL;
-  client->stm.initial = WRITE;
-  client->stm.max_state = ERROR_STATE;
-  client->stm.states = states; // para cada estado un afuncion;
-  stm_init(&client->stm);
-  client->newLine = true;
-  client->lastFileList = -1;
+    buffer_init(&client->serverBuffer, BUFFER_SIZE, client->serverBuffer_data);
 
-  buffer_init(&client->serverBuffer, BUFFER_SIZE, client->serverBuffer_data);
+    buffer_init(&client->clientBuffer, BUFFER_SIZE, client->clientBuffer_data);
 
-  buffer_init(&client->clientBuffer, BUFFER_SIZE, client->clientBuffer_data);
-
-  // client->serverBuffer = serverBuffer;
-  // client->clientBuffer = &clientBuf;
-   char *s = "+OK POP3 server ready\r\n";
+    char *s = "+OK POP3 server ready\r\n";
 
     // Since the output buffer is empty, we can write directly to it
-    for (int i=0; s[i]; i++) {
+    for (int i = 0; s[i]; i++)
+    {
         buffer_write(&client->serverBuffer, s[i]);
     }
 
     client->serverBuffer_size = strlen(s);
 
-  // memcpy(&client->serverBuffer.data, "hola", 5);
-  // buffer_write_adv(&client->serverBuffer, 5);
-  // sock_blocking_write(client_fd, &client->serverBuffer);
+    if (selector_fd_set_nio(client_fd) == -1)
+    {
+        err_msg = "Unable to set client socket as non-blocking";
+        goto handle_error;
+    }
 
-  if (selector_fd_set_nio(client_fd) == -1) {
-    // goto; //TODO
-    printf("%s\n", "Error al setear nio\n");
-  }
+    selector_status status = selector_register(key->s, client_fd, &pop3Handlers, OP_WRITE, client);
+    if (status != SELECTOR_SUCCESS)
+    {
+        err_msg = "Unable to register client socket";
+        goto handle_error;
+    }
 
-  selector_status status = selector_register(key->s, client_fd, &pop3Handlers, OP_WRITE, client);
-  if (status != SELECTOR_SUCCESS) {
-    // goto handle_error;
-  }
+    metrics_new_connection();
 
-  metrics_new_connection();
-   
-    // holaquieroimprimir
-    // sock_blocking_write(client->fd, serverBuffer); ANTES 
+    LogInfo("New client connected from %s", sockaddr_to_human_buffered((struct sockaddr*)&client_addr));
 
+    return;
 
-return;
-  
-
-    // // leemos comando
-    // {
-    //     bool error = false;
-    //     size_t buffsize;
-    //     ssize_t n;
-    //     struct pop3cmd_parser pop3cmd_parser = *pop3cmd_parser_init();
-    //     client_state current_state;
-        
-    //     do {
-    //         uint8_t *ptr = buffer_write_ptr(&client->clientBuffer, &buffsize);
-    //         // printf("aca sigo\n");
-    //         n = recv(client->fd, ptr, buffsize, 0); 
-    //         buffer_write_adv(&client->clientBuffer, n);
-            
-    //         if (n>0){
-    //           while(buffer_can_read(&client->clientBuffer)) /*&& buffer_fits(serverBuffer, free_buffer_space))*/ {
-    //             printf("%s\n", client->clientBuffer.read);
-    //             pop3cmd_consume(&client->clientBuffer, &pop3cmd_parser, &error); // vuelvo con el comando ya calculado.
-    //             if (pop3cmd_parser.finished) {
-    //               current_state = executeCommand(&pop3cmd_parser, client);
-    //               parser_reset(&pop3cmd_parser);
-    //             }
-    //           }
-    //         }
-            
-
-
-
-    //         // if(n > 0) {
-    //         //     buffer_write_adv(&clientBuf, n); 
-    //         //     /* const enum pop3cmd_state st = */ pop3cmd_consume(&clientBuf, &pop3cmd_parser, &error);
-    //         //     if(pop3cmd_parser.finished) {
-    //         //       current_state = executeCommand(&pop3cmd_parser, client);
-    //         //       parser_reset(&pop3cmd_parser);
-    //         //     } else {
-    //         //       printf("Not finished\n");
-    //         //     }
-
-    //         // } else {
-    //         //     break;
-    //         // }   
-    //     } while(current_state != CLOSED);
-    //     printf("Sali\n");
-    //     // if(!pop3cmd_is_done(pop3cmd_parser.state, &error)) {
-    //     //     error = true;
-    //     // }
-    //     // pop3cmd_parser_close(&pop3cmd_parser);
-    //     // return error;
-    // }
-
+handle_error:
+    if (err_msg)
+    {
+        LogError(err_msg);
+    }
+    if (client_fd != -1)
+    {
+        close(client_fd);
+    }
+    if (client != NULL)
+    {
+        free(client);
+    }
 }
 
-/** rutina de cada hilo worker */
+int main(int argc, char **argv)
+{
 
-// static void *handle_connection_pthread(void *args) {
-//   const struct connection *c = args;
-//   pthread_detach(pthread_self());
-//   pop3_handle_connection(c->fd, (struct sockaddr *)&c->addr);
-//   free(args);
+    int ret = -1;
 
-//   return 0;
-// }
-
-
-
- /**
- * atiende a los clientes de forma concurrente con I/O bloqueante.
- */
-// int serve_pop3_concurrent_blocking(const int server) {
-//   for (;!done;) {
-//     struct sockaddr_in6 caddr;
-//     socklen_t caddrlen = sizeof (caddr);
-//     // Wait for a client to connect
-//     const int fd = accept(server, (struct sockaddr*)&caddr, &caddrlen);
-
-
-
-//     if (fd < 0) {
-//       perror("unable to accept incoming socket");
-//     } else {
-//       // TODO(juan): limitar la cantidad de hilos concurrentes
-//       struct connection* c = malloc(sizeof (struct connection));
-//       if (c == NULL) {
-//         // lo trabajamos iterativamente
-//         pop3_handle_connection(fd, (struct sockaddr*)&caddr);
-//       } else {
-//         pthread_t tid;
-//         c->fd = fd;
-//         c->addrlen = caddrlen;
-//         memcpy(&(c->addr), &caddr, caddrlen);
-//         if (pthread_create(&tid, 0, handle_connection_pthread, c)) {
-//           free(c);
-
-//           // lo trabajamos iterativamente
-//           pop3_handle_connection(fd, (struct sockaddr*)&caddr);
-//         }
-//       }
-//     }
-//   }  
-//   return 0;
-// }
-
-int
-main( int argc,  char **argv) {
-
-  int ret = -1;
-
-    args = (struct POP3args*)malloc(sizeof(struct POP3args));
+    args = (struct POP3args *)malloc(sizeof(struct POP3args));
 
     parse_args(argc, argv, args);
 
-    
-
-    // unsigned port = 1110;
-
-    // if(argc == 1) {
-    //     // utilizamos el default
-    // } else if(argc == 2) {
-    //     char *end     = 0;
-    //     const long sl = strtol(argv[1], &end, 10);
-
-    //     if (end == argv[1]|| '\0' != *end 
-    //        || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno)
-    //        || sl < 0 || sl > USHRT_MAX) {
-    //         fprintf(stderr, "port should be an integer: %s\n", argv[1]);
-    //         return 1;
-    //     }
-    //     port = sl;
-    // } else {
-    //     fprintf(stderr, "Usage: %s <port>\n", argv[0]);
-    //     return 1;
-    // }
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family      = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    addr.sin_port        = htons(args->POP3_port);
-
+    printf("POP3 addr: %s\n", args->POP3_addr);
     const char *err_msg = 0;
 
-    const int server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    
-    if(server < 0) {
-        err_msg = "unable to create socket";
-        goto finally;
-    }
+    LogInfo("Starting POP3 server on %s:%d", args->POP3_addr, args->POP3_port);
+
+    // const int server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     const struct selector_init init = {
         .signal = SIGALRM,
         .select_timeout = {
-            .tv_sec  = 10,
+            .tv_sec = 10,
             .tv_nsec = 0,
         },
     };
 
     fd_selector selector = NULL;
     selector_status selectStatus = selector_init(&init);
-    if (selectStatus != SELECTOR_SUCCESS) goto finally;
 
-    // man 7 ip. no importa reportar nada si falla.
-    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
 
-    if(bind(server, (struct sockaddr*) &addr, sizeof(addr)) < 0) {
-        err_msg = "unable to bind socket";
-        goto finally;
-    }
-
-    if (listen(server, 20) < 0) {
-        err_msg = "unable to listen";
-        goto finally;
-    }
-    
-    fprintf(stdout, "Listening on TCP %s:%d\n", args->POP3_addr, args->POP3_port);
 
     int managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
-    if (managerSocket == -1) goto finally;
+    struct sockaddr_in6 serveradr;
+    int server = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+
+    if (selectStatus != SELECTOR_SUCCESS)
+        goto finally;
+
+     // man 7 ip. no importa reportar nada si falla.
+    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+
+    memset(&serveradr, 0, sizeof(serveradr));
+    serveradr.sin6_port = htons(args->POP3_port);
+    serveradr.sin6_family = AF_INET6;
+    serveradr.sin6_addr = in6addr_any;
+
+    if (inet_pton(AF_INET, args->POP3_addr, &serveradr.sin6_addr)< 0) {
+        LogError("Invalid address");
+    }
+
+
+    if (server < 0)
+    {
+        err_msg = "Unable to create socket\n";
+        goto finally;
+    }
+
+
+    if (bind(server, (struct sockaddr *)&serveradr, sizeof(serveradr)) )
+    {
+        err_msg = "Unable to bind socket";
+        goto finally;
+    }
+
+    if (listen(server, 20) < 0)
+    {
+        err_msg = "Unable to listen";
+        goto finally;
+    }
+
+    LogInfo("Listening on TCP %s:%d", args->POP3_addr, args->POP3_port);
+
+    if (managerSocket == -1)
+    {
+        // err_msg = "Unable to setup manager socket";
+        goto finally;
+    }
 
     // registrar sigterm es útil para terminar el programa normalmente.
     // esto ayuda mucho en herramientas como valgrind.
     signal(SIGTERM, sigterm_handler);
-    signal(SIGINT,  sigterm_handler);
+    signal(SIGINT, sigterm_handler);
 
     // Trabajamos aca
-    if ( server != -1 && selector_fd_set_nio(server) == -1) {
-      goto finally;
+    if (server != -1 && selector_fd_set_nio(server) == -1)
+    {
+        err_msg = "Unable to set server socket as non-blocking";
+        goto finally;
     }
-    
+
     selector = selector_new(SELECTOR_SIZE);
-    if (selector == NULL) goto finally;
+    if (selector == NULL)
+    {
+        err_msg = "Unable to create selector";
+        goto finally;
+    }
 
     const fd_handler passiveHandler = {
-            .handle_read = pop3_handle_connection, //TODO Es el saludo, registra el cliente y sus cosas en el selector.
-            .handle_write = NULL,
-            .handle_close = NULL,
-            .handle_block = NULL,
+        .handle_read = pop3_handle_connection, // TODO Es el saludo, registra el cliente y sus cosas en el selector.
+        .handle_write = NULL,
+        .handle_close = NULL,
+        .handle_block = NULL,
     };
 
     selectStatus = selector_register(selector, server, &passiveHandler, OP_READ, NULL);
-    if(selectStatus != SELECTOR_SUCCESS) goto finally;
+    if (selectStatus != SELECTOR_SUCCESS)
+    {
+        err_msg = "Unable to register server socket";
+        goto finally;
+    }
 
     const fd_handler managerHandler = {
-            .handle_read = manager_handle_connection, 
-            .handle_write = NULL, 
-            .handle_close = NULL, 
-            .handle_block = NULL
-    };
+        .handle_read = manager_handle_connection,
+        .handle_write = NULL,
+        .handle_close = NULL,
+        .handle_block = NULL};
 
     selectStatus = selector_register(selector, managerSocket, &managerHandler, OP_READ, NULL);
-    if(selectStatus != SELECTOR_SUCCESS) goto finally;
-
-    while (!done) {
-        selectStatus = selector_select(selector);
-        if (selectStatus != SELECTOR_SUCCESS) goto finally;
+    if (selectStatus != SELECTOR_SUCCESS)
+    {
+        goto finally;
     }
 
+    while (!done)
+    {
+        selectStatus = selector_select(selector);
+        if (selectStatus != SELECTOR_SUCCESS)
+        {
+            goto finally;
+        }
+    }
 
-
-    err_msg = 0;
     ret = 0;
 
-    
-
-  finally:
-    // TODO: handle selectStatus cases
-
-    if(err_msg) {
-        perror(err_msg);
+finally:
+    if (selectStatus != SELECTOR_SUCCESS)
+    {
+        LogError("Error in selector: %s", selector_error(selectStatus));
+        if (selectStatus == SELECTOR_IO)
+        {
+            LogRaw("More info: %s", strerror(errno));
+        }
+    }
+    if (err_msg)
+    {
+        LogError(err_msg);
         ret = 1;
     }
-    if(server >= 0) {
+    if (selector != NULL)
+    {
+        selector_destroy(selector);
+    }
+    selector_close();
+    if (server >= 0)
+    {
         close(server);
+    }
+    if (managerSocket >= 0)
+    {
+        close(managerSocket);
     }
     return ret;
 }

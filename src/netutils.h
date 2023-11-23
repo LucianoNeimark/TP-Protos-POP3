@@ -21,7 +21,7 @@ const char *
 sockaddr_to_human(char *buff, const size_t buffsize,
                   const struct sockaddr *addr);
 
-
+const char* sockaddr_to_human_buffered(const struct sockaddr *addr);
 
 /**
  * Escribe n bytes de buff en fd de forma bloqueante

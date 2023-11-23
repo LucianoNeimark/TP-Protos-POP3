@@ -15,7 +15,7 @@ port(const char *s) {
     if (end == s|| '\0' != *end
         || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno)
         || sl < 0 || sl > USHRT_MAX) {
-        fprintf(stderr, "port should in in the range of 1-65536: %s\n", s);
+        LogError("Port should in in the range of 1-65536: %s\n", s);
         exit(1);
     }
     return (unsigned short)sl;
@@ -24,22 +24,21 @@ port(const char *s) {
 static void
 directory(char * dest, char * src){
 
-    printf("src: %s\n",src);
-    printf("dest: %s\n",dest);
+    LogInfo("Source port: %s",src);
+    LogInfo("Destination port: %s",dest);
     strcpy(dest,src);
 }
 
 static void
 version(void) {
-    fprintf(stderr, "POP3 version 0.0\n"
+    LogInfo("POP3 version 0.0\n"
                     "ITBA Protocolos de Comunicación 2023/2 -- Grupo 5\n"
                     "AQUI VA LA LICENCIA\n");
 }
 
 static void
 usage(const char *progname) {
-    fprintf(stderr,
-        "Usage: %s [OPTION]...\n"
+    LogError("Usage: %s [OPTION]...\n"
         "\n"
         "   -h                 Imprime la ayuda y termina.\n"
         "   -l <POP3 addr>     Dirección donde servirá el servidor POP3.\n"
@@ -58,7 +57,7 @@ void
 parse_args(const int argc, char **argv, struct POP3args *args) {
     memset(args, 0, sizeof(*args)); // sobre todo para setear en null los punteros de users
 
-    args->POP3_addr = "127.0.0.1";
+    args->POP3_addr = "::";
     args->POP3_port = 1110;
 
     args->mng_addr   = "127.0.0.1";
@@ -112,32 +111,17 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
                 printf("directory: %s\n", optarg);
                 directory(args->directory,optarg);
                 break;
-            // case 0xD001:
-            //     args->doh.ip = optarg;
-            //     break;
-            // case 0xD002:
-            //     args->doh.port = port(optarg);
-            //     break;
-            // case 0xD003:
-            //     args->doh.host = optarg;
-            //     break;
-            // case 0xD004:
-            //     args->doh.path = optarg;
-            //     break;
-            // case 0xD005:
-            //     args->doh.query = optarg;
-            //     break;
             default:
-                fprintf(stderr, "unknown argument %d.\n", c);
+                LogError("Unknown argument %d.\n", c);
                 exit(1);
         }
     }
     if (optind < argc) {
-        fprintf(stderr, "argument not accepted: ");
+        LogError("Argument not accepted: ");
         while (optind < argc) {
-            fprintf(stderr, "%s ", argv[optind++]);
+            LogErrorRaw("%s ", argv[optind++]);
         }
-        fprintf(stderr, "\n");
+        LogErrorRaw("\n");
         exit(1);
     }
 }

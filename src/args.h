@@ -5,6 +5,7 @@
 #include "pop3.h"
 #include "include/constants.h"
 #include "include/users.h"
+#include "logger/logger.h"
 
 #define MAX_DIR_LEN 256
 
