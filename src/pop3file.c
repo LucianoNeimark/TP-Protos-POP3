@@ -31,12 +31,12 @@ ssize_t custom_getline(char **lineptr, FILE *file) {
     size_t count = 0;
 
     // Allocate initial buffer or expand existing buffer
-        *lineptr = malloc(128);
+        *lineptr = malloc(BUFFER_SIZE);
         if (*lineptr == NULL) {
             return -1;  // Allocation error
         }
 
-    count = read(fd, *lineptr, 128-1); // para el 0! (no 1)
+    count = read(fd, *lineptr, BUFFER_SIZE-1); // para el 0! (no 1)
     // imprimi lline pointer
     
 
