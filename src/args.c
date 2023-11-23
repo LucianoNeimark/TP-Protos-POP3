@@ -111,21 +111,6 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
                 printf("directory: %s\n", optarg);
                 directory(args->directory,optarg);
                 break;
-            // case 0xD001:
-            //     args->doh.ip = optarg;
-            //     break;
-            // case 0xD002:
-            //     args->doh.port = port(optarg);
-            //     break;
-            // case 0xD003:
-            //     args->doh.host = optarg;
-            //     break;
-            // case 0xD004:
-            //     args->doh.path = optarg;
-            //     break;
-            // case 0xD005:
-            //     args->doh.query = optarg;
-            //     break;
             default:
                 LogError("Unknown argument %d.\n", c);
                 exit(1);

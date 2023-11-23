@@ -173,13 +173,6 @@ int main(int argc, char **argv)
     parse_args(argc, argv, args);
 
     printf("POP3 addr: %s\n", args->POP3_addr);
-
-    // struct sockaddr_in addr;
-    // memset(&addr, 0, sizeof(addr));
-    // addr.sin_family = AF_INET;
-    // addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    // addr.sin_port = htons(args->POP3_port);
-
     const char *err_msg = 0;
 
     LogInfo("Starting POP3 server on %s:%d", args->POP3_addr, args->POP3_port);
