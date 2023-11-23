@@ -10,6 +10,7 @@ void handleDeleteUser(char * request, char * response);
 void handleHistoric(char * request, char * response);
 void handleConcurrent(char * request, char * response);
 void handleTransferred(char * request, char * response);
+void handleStop(char * request, char * response);
 
 typedef struct command_mapping {
     manager_cmd_state state;
@@ -24,6 +25,7 @@ command_mapping command_mappings[] = {
     {M_HISTORIC, handleHistoric},
     {M_CONCURRENT, handleConcurrent},
     {M_TRANSFERRED, handleTransferred},
+    {M_STOP, handleStop},
     {0, NULL}
 };
 
@@ -45,7 +47,7 @@ void manager_handle_connection(struct selector_key *key) {
 
     the_manager.parser = manager_parser_init();
 
-    manager_parser_analyze(the_manager.parser, the_manager.manager_buffer, the_manager.manager_addr_len);
+    manager_parser_analyze(the_manager.parser, the_manager.manager_buffer, UDP_BUFFER_SIZE);
 
     execute_manager_command(&the_manager);
 
@@ -83,6 +85,7 @@ void handleCapa(char * request, char * response) {
                         "HIST\r\n"
                         "CONC\r\n"
                         "TRANS\r\n"
+                        "STOP\r\n"
                         ".\r\n");
 }
 
@@ -92,15 +95,29 @@ void handleUsers(char * request, char * response) {
     char aux[UDP_BUFFER_SIZE - 1];
     int aux_size = 0;
 
-    aux_size += sprintf(aux + aux_size, "+OK User list follows:\n");
+    int user_count = get_user_count();
 
-    for (int i = 0; i < get_user_count(); i++) {
-        aux_size += sprintf(aux + aux_size, "%s:%s\r\n", users[i].name, users[i].pass);
+    int offset = atoi(request);     // atoi(null) = 0;
+
+    aux_size += sprintf(aux + aux_size, "+OK User list follows (%d - %d):\n", offset, (offset+9 > user_count)? user_count:offset+9);
+
+    if (request == NULL) {
+        sprintf(response, "-ERR Please specify offset\r\n");
+        return ;       
+    }
+
+    if (offset < 1 || offset > user_count) {
+        sprintf(response, "-ERR Offset must be between 1 and %d\r\n", user_count);
+        return ;
+    }
+
+    for (int i = offset-1; i < user_count && i < offset + 9; i++) {
+        aux_size += sprintf(aux + aux_size, "%d %s:%s\r\n", i+1, users[i].name, users[i].pass);
     }
 
     aux_size += sprintf(aux + aux_size, ".\r\n");
 
-    if (aux_size >= UDP_BUFFER_SIZE) {      // TODO: esto deberia ir en la gral, para que lo hagan todos
+    if (aux_size >= UDP_BUFFER_SIZE) {
         sprintf(response, "-ERR UDP buffer size limit exceeded");
         return ;
     }
@@ -109,13 +126,28 @@ void handleUsers(char * request, char * response) {
 }
 
 void handleAddUser(char * request, char * response) {
-    int retval = user_add(request);
-    if (retval == 0) {
-        sprintf(response, "+OK\r\n");
-    } else if (retval == -1){
-        sprintf(response, "-ERR User already exists\r\n");
-    } else {
-        sprintf(response, "-ERR Invalid user format\r\n");   
+    switch (user_add(request)) {
+        case 0:
+            sprintf(response, "+OK\r\n");
+            break;
+        case -1:
+            sprintf(response, "-ERR User already exists\r\n");
+            break;
+        case -2:
+            sprintf(response, "-ERR Invalid user format\r\n");
+            break;
+        case -3:
+            sprintf(response, "-ERR User limit reached: %d\r\n", MAX_USERS);
+            break;
+        case -4:
+            sprintf(response, "-ERR Username length exceeded: %d\r\n", MAX_USER_LENGTH);
+            break;
+        case -5:
+            sprintf(response, "-ERR Password length exceeded: %d\r\n", MAX_PASS_LENGTH);
+            break;
+        default:
+            sprintf(response, "-ERR\r\n");
+            break;
     }
 }
 void handleDeleteUser(char * request, char * response) {
@@ -142,4 +174,12 @@ void handleTransferred(char * request, char * response) {
     struct metrics * metrics = get_metrics();
 
     sprintf(response, "+OK Bytes transferred: %d\r\n", metrics->bytes_transferred);
+}
+
+extern bool done;
+
+void handleStop(char * request, char * response) {
+    done = true;
+
+    sprintf(response, "+OK Shutting down\r\n");
 }

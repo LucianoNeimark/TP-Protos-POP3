@@ -31,7 +31,7 @@
 
 #define SELECTOR_SIZE 1024
 
-static bool done = false;
+bool done = false;
 
 //llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
 // Donde escribiamos ahora copiamos al buffer y seteamos la intencion
@@ -279,12 +279,8 @@ main( int argc,  char **argv) {
 
     const char *err_msg = 0;
 
-    const int server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    
-    if(server < 0) {
-        err_msg = "unable to create socket";
-        goto finally;
-    }
+    int server = -1;
+    int managerSocket = -1;
 
     const struct selector_init init = {
         .signal = SIGALRM,
@@ -297,6 +293,13 @@ main( int argc,  char **argv) {
     fd_selector selector = NULL;
     selector_status selectStatus = selector_init(&init);
     if (selectStatus != SELECTOR_SUCCESS) goto finally;
+
+    server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    
+    if(server < 0) {
+        err_msg = "unable to create socket";
+        goto finally;
+    }
 
     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
@@ -313,7 +316,7 @@ main( int argc,  char **argv) {
     
     fprintf(stdout, "Listening on TCP %s:%d\n", args->POP3_addr, args->POP3_port);
 
-    int managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
+    managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
     if (managerSocket == -1) goto finally;
 
     // registrar sigterm es útil para terminar el programa normalmente.
@@ -359,10 +362,25 @@ main( int argc,  char **argv) {
     err_msg = 0;
     ret = 0;
 
-    
+    exit(0);
 
   finally:
-    // TODO: handle selectStatus cases
+    if (selectStatus != SELECTOR_SUCCESS) {
+        fprintf(stdout, "Error in selector: %s", selector_error(selectStatus));
+        if (selectStatus == SELECTOR_IO) {
+            fprintf(stdout, "More info: %s", strerror(errno));
+        }
+    }
+    
+    if (selectStatus != SELECTOR_SUCCESS) {
+        fprintf(stdout, "Error in selector: %s", selector_error(selectStatus));
+    }
+
+    if (selector != NULL) selector_destroy(selector);
+    selector_close();
+
+    if(server >= 0) close(server);
+    if(managerSocket >= 0) close(managerSocket);
 
     if(err_msg) {
         perror(err_msg);

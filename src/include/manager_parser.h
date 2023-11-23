@@ -16,6 +16,7 @@ typedef enum manager_cmd_state {
     M_HISTORIC,
     M_CONCURRENT,
     M_TRANSFERRED,
+    M_STOP,
     M_CAPA,
     M_UNDEF,
     M_ERROR

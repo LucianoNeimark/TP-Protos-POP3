@@ -29,7 +29,8 @@ struct state_mapping state_mappings[] = {
     {"DEL", M_DELE},
     {"HIST", M_HISTORIC},
     {"CONC", M_CONCURRENT},
-    {"TRANS", M_TRANSFERRED}
+    {"TRANS", M_TRANSFERRED},
+    {"STOP", M_STOP}
 };
 
 enum manager_cmd_state getParserState(const char *line) {
@@ -58,7 +59,7 @@ manager_cmd_state manager_parser_analyze(manager_cmd_parser * p, uint8_t * input
     memcpy(aux, input, input_length);
 
     size_t i = 0;
-    while (i < input_length) {
+    while (i < input_length && aux[i] != 0) {
         manager_parser_feed(p, aux[i++]);
     }
     
@@ -69,7 +70,7 @@ manager_cmd_state manager_parser_analyze(manager_cmd_parser * p, uint8_t * input
 
 manager_cmd_state manager_parser_feed(manager_cmd_parser * p, uint8_t c) {
     if(p->state == M_UNDEF) c = toupper(c);
-    if (BUFFER_SIZE == p->line_size) {
+    if (BUFFER_SIZE <= p->line_size) {
         return M_ERROR;
     }
     
