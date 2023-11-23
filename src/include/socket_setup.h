@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <netdb.h>
 
+#include "../logger/logger.h"
 
 int setupManagerSocket(char *addr, int port);
 
