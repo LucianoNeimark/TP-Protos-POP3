@@ -1,0 +1,28 @@
+www.viva64.com/en/w	1	err	Help: The documentation for all analyzer warnings is available here: https://www.viva64.com/en/w/.
+/root/src/netutils.c	41	note	V575 The potential null pointer is passed into 'inet_ntop' function. Inspect the second argument.
+/root/src/socket_setup.c	31	warn	V641 The size of the '& manager_addr' buffer is not a multiple of the element size of the type 'struct sockaddr'.
+/root/src/main.c	216	warn	V641 The size of the '& serveradr' buffer is not a multiple of the element size of the type 'struct sockaddr'.
+/root/src/pop3file.c	126	warn	V575 The potential null pointer is passed into 'open' function. Inspect the first argument. Check lines: 126, 123.
+/root/src/pop3file.c	169	warn	V575 The potential null pointer is passed into 'fopen' function. Inspect the first argument. Check lines: 169, 166.
+/root/src/pop3file.c	204	warn	V575 The potential null pointer is passed into 'remove' function. Inspect the first argument. Check lines: 204, 201.
+/root/src/command-handler.c	57	note	V576 Incorrect format. Consider checking the third actual argument of the 'sprintf' function. The SIGNED integer type argument is expected.
+/root/src/command-handler.c	72	warn	V575 The potential null pointer is passed into 'sprintf' function. Inspect the first argument. Check lines: 72, 71.
+/root/src/command-handler.c	72	note	V576 Incorrect format. Consider checking the third actual argument of the 'sprintf' function. The SIGNED integer type argument is expected.
+/root/src/command-handler.c	72	note	V576 Incorrect format. Consider checking the fourth actual argument of the 'sprintf' function. The SIGNED integer type argument is expected.
+/root/src/command-handler.c	78	note	V751 Parameter 'arg2' is not used inside function body.
+/root/src/command-handler.c	125	warn	V575 The potential null pointer is passed into 'sprintf' function. Inspect the first argument. Check lines: 125, 123.
+/root/src/command-handler.c	119	note	V751 Parameter 'arg2' is not used inside function body.
+/root/src/command-handler.c	151	warn	V575 The potential null pointer is passed into 'sprintf' function. Inspect the first argument. Check lines: 151, 144.
+/root/src/command-handler.c	184	warn	V575 The potential null pointer is passed into 'sprintf' function. Inspect the first argument. Check lines: 184, 182.
+/root/src/command-handler.c	184	note	V576 Incorrect format. Consider checking the third actual argument of the 'sprintf' function. The SIGNED integer type argument is expected.
+/root/src/command-handler.c	184	note	V576 Incorrect format. Consider checking the fourth actual argument of the 'sprintf' function. The SIGNED integer type argument is expected.
+/root/src/command-handler.c	200	warn	V575 The potential null pointer is passed into 'memcpy' function. Inspect the first argument. Check lines: 200, 199.
+/root/src/command-handler.c	190	note	V751 Parameter 'arg2' is not used inside function body.
+/root/src/command-handler.c	217	warn	V575 The potential null pointer is passed into 'memcpy' function. Inspect the first argument. Check lines: 217, 216.
+/root/src/command-handler.c	205	note	V751 Parameter 'arg2' is not used inside function body.
+/root/src/selector.c	273	warn	V547 Expression is always false.
+/root/src/manager/manager_handler.c	46	err	V614 Uninitialized pointer 'the_manager.parser' used. Consider checking the first actual argument of the 'manager_parser_destroy' function.
+/root/src/manager/manager_handler.c	92	err	V575 The 'memcpy' function doesn't copy the whole string. Use 'strcpy / strcpy_s' function to preserve terminal null.
+/root/src/manager/manager_handler.c	102	err	V575 The 'memcpy' function doesn't copy the whole string. Use 'strcpy / strcpy_s' function to preserve terminal null.
+/root/src/manager/manager_parser.c	92	warn	V557 Array overrun is possible. The value of 'p->line_size' index could reach 4095.
+/root/src/manager/manager_parser.c	100	warn	V557 Array overrun is possible. The value of 'p->line_size ++' index could reach 4095.
