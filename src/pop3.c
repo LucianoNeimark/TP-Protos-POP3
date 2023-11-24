@@ -401,6 +401,7 @@ void closeConnection(struct selector_key *key) {
 
 void pop3Close(struct selector_key *key) {
     struct state_machine *stm = &((struct Client *) key->data)->stm;
+    metrics_close_connection();
     stm_handler_close(stm, key);
 }
 
