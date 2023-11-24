@@ -59,9 +59,8 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
     }
 
     if (bytes_read == 0 && !buffer_can_read(&client->clientBuffer)) {
-        state = ERROR_STATE;
-        status = SELECTOR_SUCCESS;
-        goto error_handling;
+        closeConnection(key);
+        return CLOSE_STATE;
     }
 
      state =  parseCommandInBuffer(key);
