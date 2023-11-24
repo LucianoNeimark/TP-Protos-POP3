@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #define MAX_SIZE_PATH 1024
+#define FILE_TYPE 8
 
 static int get_path(char * path, char *file_name) {
     return snprintf(path, MAX_SIZE_PATH, "%s/%s", args->directory, file_name);
@@ -80,7 +81,7 @@ int populate_array(Client * client){
     struct dirent * file_iter;
     while((file_iter = readdir(direc)) != NULL) {
 
-        if(file_iter->d_type == 8){ //FIXME DESHARDCODEAR EL 8
+        if(file_iter->d_type == FILE_TYPE){
             char * user_path = malloc(sizeof(char) * MAX_SIZE_PATH);
             if (user_path == NULL) {
                 LogError("Unable to allocate memory for user path");
@@ -116,7 +117,6 @@ char* read_first_line_file(char *file_name, Client * client){
     if (client->fileState.file == NULL) {
         char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
         get_file_path(file_path, args->directory, client->name, file_name);
-        // Abrir el archivo
         client->fileState.file = fopen(file_path, "r");
         if (client->fileState.file == NULL) {
             LogError("RETR: Unable to open file");
