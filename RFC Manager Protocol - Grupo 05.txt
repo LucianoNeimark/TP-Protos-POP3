@@ -1,0 +1,255 @@
+                                                      Noviembre 24, 2023
+
+                    POP3 Manager Protocol - Grupo 05
+
+Estado del informe
+    En el presente informe se desarrolla un protocolo de comunicación
+    para la administración de un servidor POP3 (Post Office Protocol -
+    Versión 3) [RFC 1939] con sistema de usuarios [RFC 2449]. Se asume
+    que el servidor POP3 sobre el que se implementa el protocolo
+    mantiene los estándares presentados en la edición actualizada
+    "Internet Official Protocol Standards".
+
+
+Tabla de Contenidos
+    1. Introducción
+    2. Esquema de comunicación
+    3. Instrucciones
+        CAPA
+        USERS
+        ADD
+        DEL
+        HIST
+        CONC
+        TRANS
+        STOP
+    4. Extensiones a futuro
+    5. Autores
+
+
+1. Introducción
+    El protocolo de comunicación a desarrollar busca seguir las
+    convenciones de la implementación original POP3. Entre ellas:
+    implementar instrucciones case-insensitive, finalizar las
+    instrucciones de una línea con \r\n, y multilínea con \r\n.\r\n. A
+    través de ellas, tiene como objetivo monitorear y configurar el
+    servidor en tiempo real.
+				
+
+2. Esquema de comunicación
+    La comunicación con el protocolo de administración sigue la mantiene
+    estructura:
+      C (cliente): instrucción <argumento_opcional>
+      S (servidor): respuesta
+
+      Se categoriza respuesta del servidor en base al estado de la
+      respuesta:
+          +OK <mensaje_opcional>
+          -ERR <mensaje_opcional>
+
+
+3. Instrucciones
+    A continuación se presentan las instrucciones base del protocolo de
+    monitoreo:
+
+    CAPA
+
+      Argumentos: ninguno
+
+      Discusión:
+          La respuesta -ERR indica que no se implementó el comando CAPA.
+
+          La respuesta +OK encabeza la lista de comandos soportados.
+
+      Ejemplos:
+          C: CAPA
+          S: +OK
+          S: CAPA
+          S: USERS
+          S: HIST
+          S: CONC
+          S: TRANS
+          S: .
+
+
+    USERS
+
+      Argumentos: desplazamiento
+         
+      Respuestas posibles:
+          +OK Lista de usuarios a continuación
+          -ERR Desplazamiento inválido
+
+      Discusión:
+          La instrucción USERS devuelve los 10 usuarios a partir del
+          desplazamiento indicado.
+
+          En caso de no especificar un desplazamiento, o introducir un
+          argumento inválido, se debe informar a través de -ERR.
+
+      Ejemplos:
+          C: USERS 12
+          S: +OK
+          S: 12 luca:smtp
+          S: 13 nicolas:arp
+          S: 14 paz:https
+          S: ...
+
+          C: USERS
+          S: -ERR Desplazamiento inválido
+
+
+    ADD
+
+      Argumentos: usuario:contraseña
+         
+      Respuestas posibles:
+          +OK 
+          -ERR
+
+      Discusión:
+          La instrucción ADD agrega un usuario a la lista del servidor
+          POP3. Devuelve +OK cuando se pudo agregar el usuario.
+
+          Si ocurrió un error, sea interno del servidor, o porque el
+          usuario ya existe, se deberá indicar a través de -ERR.
+
+      Ejemplos:
+          C: ADD pedrito:secret
+          S: +OK
+
+          C: ADD luciano:ssh
+          S: -ERR El usuario ya existe
+
+
+    DEL
+
+      Argumentos: usuario
+         
+      Respuestas posibles:
+          +OK 
+          -ERR
+
+      Discusión:
+          La instrucción DEL elimina un usuario a la lista del servidor
+          POP3. Devuelve +OK cuando se pudo eliminal al usuario.
+
+          Si ocurrió un error, sea interno del servidor, o porque el
+          usuario no existe, se deberá indicar a través de -ERR.
+
+      Ejemplos:
+          C: DEL luciano
+          S: +OK
+
+          C: DEL pedito
+          S: -ERR usuario no encontrado
+
+
+    HIST
+
+      Argumentos: ninguno
+         
+      Respuestas posibles:
+          +OK nn
+          -ERR
+
+      Discusión:
+          La instrucción HIST devuelve la cantidad de accesos totales
+          por usuarios al servidor POP3.
+
+      Ejemplos:
+          C: HIST
+          S: +OK 15
+
+
+    CONC
+
+      Argumentos: ninguno
+         
+      Respuestas posibles:
+          +OK nn
+          -ERR
+
+      Discusión:
+          La instrucción HIST devuelve la cantidad de accesos
+          concurrentes por usuarios al servidor POP3.
+
+      Ejemplos:
+          C: CONC
+          S: +OK 2
+
+    CONC
+
+      Argumentos: ninguno
+         
+      Respuestas posibles:
+          +OK nn
+          -ERR
+
+      Discusión:
+          La instrucción CONC devuelve la cantidad de accesos
+          concurrentes por usuarios al servidor POP3.
+
+      Ejemplos:
+          C: CONC
+          S: +OK 2
+
+
+    TRANS
+
+      Argumentos: ninguno
+         
+      Respuestas posibles:
+          +OK nn
+          -ERR
+
+      Discusión:
+          La instrucción TRANS devuelve la cantidad de bytes enviados
+          por el servidor POP3.
+
+      Ejemplos:
+          C: TRANS
+          S: +OK 1243
+
+
+    STOP
+
+      Argumentos: ninguno
+         
+      Respuestas posibles:
+          +OK
+          -ERR
+
+      Discusión:
+          La instrucción STOP apaga el servidor POP3. Retorna +OK si
+          logra realizar la acción, y -ERR en caso contrario.
+
+      Ejemplos:
+          C: STOP
+          S: +OK Apagando el servidor
+
+
+4. Extensiones a futuro
+      Como se puede observar, permitir la administración de un servidor
+      POP3 en tiempo real puede resultar muy útil. El protocolo se
+      podría expandir en muchas direcciones; principalmente se considera
+      generar métricas más avanzadas, relacionadas al throughput y
+      estudio de conexiones. También se considera cambiar otras
+      variables, como el buffer utilizado por las comunicaciones TCP,
+      timeouts especificados para las conexiones, y otros.
+
+
+5. Autores
+      Paz Aramburu
+      paramburu@itba.edu.ar
+
+      Nicolas Tordomar
+      ntordomar@itba.edu.ar
+
+      Luciano Neimark
+      lneimark@itba.edu.ar
+
+      Luca Seggiaro
+      lseggiaro@itba.edu.ar
+
+      
