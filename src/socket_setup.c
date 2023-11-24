@@ -5,7 +5,7 @@ int setupManagerSocket(char *addr, int port) {
     const int managerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     
     if(managerSocket < 0) {
-        fprintf(stdout, "Error creating manager socket: %s\n", strerror(errno));
+        LogError("Error creating manager socket: %s", strerror(errno));
         goto manager_error;
     }
 
@@ -18,16 +18,16 @@ int setupManagerSocket(char *addr, int port) {
     manager_addr.sin_port      = htons(port);
 
     if (inet_pton(AF_INET, addr, &manager_addr.sin_addr) < 0) {
-        fprintf(stdout, "Error parsing manager address: %s\n", strerror(errno));
+        LogError("Error parsing manager address: %s", strerror(errno));
         goto manager_error;
     }
 
     if(bind(managerSocket, (struct sockaddr*) &manager_addr, sizeof(manager_addr)) < 0) {
-        fprintf(stdout, "Error binding manager socket: %s\n", strerror(errno));
+        LogError("Error binding manager socket: %s", strerror(errno));
         goto manager_error;
     }
 
-    fprintf(stdout, "Manager listening on UDP %s:%d\n", addr, port);
+    LogInfo("Manager listening on UDP %s:%d", addr, port);
 
     return managerSocket;
 
@@ -45,19 +45,19 @@ int setupClientSocket(const char *address, const char *port, struct addrinfo *se
 
     int status = getaddrinfo(address, port, &hints, &aux_addr);
     if (status != 0) {
-        fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(status));
+        LogError("getaddrinfo error: %s", gai_strerror(status));
         return -1;
     }
 
     int client_socket = socket(aux_addr->ai_family, aux_addr->ai_socktype, aux_addr->ai_protocol);
     if (client_socket == -1) {
-        fprintf(stdout, "Error establishing client socket: %s\n", strerror(errno));
+        LogError("Error establishing client socket: %s", strerror(errno));
         freeaddrinfo(aux_addr);
         return -1;
     }
 
     if (connect(client_socket, aux_addr->ai_addr, aux_addr->ai_addrlen) == -1) {
-        fprintf(stdout, "Error connecting to client socket: %s\n", strerror(errno));
+        LogError("Error connecting to client socket: %s", strerror(errno));
         close(client_socket);
         freeaddrinfo(aux_addr);
         return -1;

@@ -32,7 +32,7 @@
 
 #define SELECTOR_SIZE 1024
 
-static bool done = false;
+bool done = false;
 
 // llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
 //  Donde escribiamos ahora copiamos al buffer y seteamos la intencion
@@ -171,7 +171,6 @@ int main(int argc, char **argv)
 
     parse_args(argc, argv, args);
 
-    printf("POP3 addr: %s\n", args->POP3_addr);
     const char *err_msg = 0;
 
     LogInfo("Starting POP3 server on %s:%d", args->POP3_addr, args->POP3_port);
