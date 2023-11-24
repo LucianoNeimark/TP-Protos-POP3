@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "buffer.h"
+#include "../include/buffer.h"
 
 inline void
 buffer_reset(buffer *b) {

@@ -13,16 +13,16 @@
 #include <arpa/inet.h>
 
 #include <unistd.h>
-#include "buffer.h"
-#include "netutils.h"
-#include "tests.h"
-#include "pop3cmd.h"
-#include "command-handler.h"
+#include "include/buffer.h"
+#include "include/netutils.h"
+#include "include/tests.h"
+#include "include/pop3cmd.h"
+#include "include/command_handler.h"
 #include "include/manager_handler.h"
 #include "include/metrics.h"  // temporal (hasta que corramos pop3_handle_connection)
 #include "include/socket_setup.h"
-#include "args.h"
-#include "selector.h"
+#include "include/args.h"
+#include "include/selector.h"
 #include "logger/logger.h"
 
 #define SELECTOR_SIZE 1024

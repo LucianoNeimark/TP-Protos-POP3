@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "pop3cmd.h"
+#include "include/pop3cmd.h"
 
 extern pop3cmd_parser *  
 pop3cmd_parser_init(void) {

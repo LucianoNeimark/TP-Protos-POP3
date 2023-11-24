@@ -8,8 +8,8 @@
 #include <string.h>
 #include <errno.h>
 
-#include "../selector.h"
-#include "../buffer.h"
+#include "selector.h"
+#include "buffer.h"
 #include "constants.h"
 #include "manager_parser.h"
 #include "metrics.h"

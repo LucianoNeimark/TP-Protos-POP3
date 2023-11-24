@@ -1,7 +1,7 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-#include "pop3.h"
-#include "command-handler.h"
+#include "include/pop3.h"
+#include "include/command_handler.h"
 
 #define COMMAND_LENGTH 4
 

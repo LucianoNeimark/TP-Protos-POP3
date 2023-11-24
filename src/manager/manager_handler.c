@@ -209,7 +209,7 @@ void handleTransferred(char * request, char * response) {
 extern bool done;
 
 void handleStop(char * request, char * response) {
-    done = true;
-
     sprintf(response, "+OK Shutting down\r\n");
+    done = true;
+    exit(0);
 }

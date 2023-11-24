@@ -10,12 +10,12 @@
 
 #include <sys/socket.h>
 
-#include "nuestro-parser.h"
+#include "parser.h"
 #include "netutils.h"
 #include "selector.h"
 #include "pop3cmd.h"
-#include "include/metrics.h"
-#include "include/users.h"
+#include "metrics.h"
+#include "users.h"
 #include "stm.h"
 
 

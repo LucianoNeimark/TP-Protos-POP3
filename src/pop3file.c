@@ -1,6 +1,6 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-#include "pop3file.h"
+#include "include/pop3file.h"
 #include <stdio.h>
 
 #define MAX_SIZE_PATH 1024      // TODO: 256 -> 1024 para que compile

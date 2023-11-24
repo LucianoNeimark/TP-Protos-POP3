@@ -1,93 +1,117 @@
 // This is a personal academic project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include "include/parser.h"
+#include <ctype.h> 
 
-#include "parser.h"
 
-/* CDT del parser */
-struct parser {
-    /** tipificación para cada caracter */
-    const unsigned     *classes;
-    /** definición de estados */
-    const struct parser_definition *def;
+pop3cmd_parser * parser_init(void) {
+    LogDebug("Initializing POP3 parser...");
+    pop3cmd_parser *ret = malloc(sizeof(*ret));
+    
+    if(ret != NULL) {
+        memset(ret, 0, sizeof(*ret));
+        ret->state = UNDEF;
+        ret->finished = false;
+        ret->line_size = 0;
+        ret->arg1 = calloc(BUFFER_SIZE, sizeof(char));
+        ret->arg2 = calloc(BUFFER_SIZE, sizeof(char));
+    } else {
+        return NULL;
+    }
+    LogDebug("POP3 parser initialized");
+    return ret;
+}
 
-    /* estado actual */
-    unsigned            state;
+#include <stdio.h>
 
-    /* evento que se retorna */
-    struct parser_event e1;
-    /* evento que se retorna */
-    struct parser_event e2;
-};
 
-void
-parser_destroy(struct parser *p) {
+void process_buffer(pop3cmd_parser * p) {
+    if (p->state == UNDEF) {
+        if (strcmp(p->line, "QUIT") == 0) {
+            p->state = QUIT;
+        } else if (strcmp(p->line, "STAT") == 0) {
+            p->state = STAT;
+        } else if (strcmp(p->line, "LIST") == 0) {
+            p->state = LIST;
+        } else if (strcmp(p->line, "RETR") == 0) {
+            p->state = RETR;
+        } else if (strcmp(p->line, "DELE") == 0) {
+            p->state = DELE;
+        } else if (strcmp(p->line, "NOOP") == 0) {
+            p->state = NOOP;
+        } else if (strcmp(p->line, "RSET") == 0) {
+            p->state = RSET;
+        } else if (strcmp(p->line, "TOP") == 0) {
+            p->state = TOP;
+        } else if (strcmp(p->line, "UIDL") == 0) {
+            p->state = UIDL;
+        } else if (strcmp(p->line, "USER") == 0) {
+            p->state = USER;
+        } else if (strcmp(p->line, "PASS") == 0) {
+            p->state = PASS;
+        } else if (strcmp(p->line, "APOP") == 0) {
+            p->state = APOP;
+        } else if (strcmp(p->line, "CAPA") == 0) {
+            p->state = CAPA;
+        } else {
+            p->state = ERROR;
+        }
+    } else if (p->state != ERROR && p->arg1[0] == 0) {
+        memcpy(p->arg1,p->line,p->line_size);
+    } else if (p->state != ERROR && p->arg2[0] == 0) {
+        memcpy(p->arg2,p->line,p->line_size);
+    } else {
+        p->state = ERROR;
+        // LogError("Error parsing command %s from %s", p->line, sockaddr_to_human_buffered((struct sockaddr*)&p->addr));
+    }
+    // LogInfo("Command parsed: %s", p->line);
+}
+
+pop3cmd_state parser_feed(pop3cmd_parser * p, uint8_t c) {
+    
+    if(p->state == UNDEF) c = toupper(c);
+    if (BUFFER_SIZE == p->line_size) {
+        return ERROR;
+    }
+
+    switch (c) { 
+        
+        case ' ':
+            process_buffer(p);
+            memset(p->line, 0, p->line_size);
+            p->line_size = 0;
+            break;
+        case '\n':
+
+            if (p->line_size > 0 && p->line[p->line_size-1] == '\r') {
+                p->line[--p->line_size] = 0;
+                process_buffer(p);
+
+            } else {
+                p->state = ERROR;
+            }
+            p->finished = true;
+            break;
+        default:
+            p->line[p->line_size++] = c;
+    }
+
+    return p->state;
+}
+
+void parser_destroy(pop3cmd_parser * p) {
     if(p != NULL) {
+        if(p->arg1 != NULL) free(p->arg1);
+        if(p->arg2 != NULL) free(p->arg2);
         free(p);
     }
 }
 
-struct parser *
-parser_init(const unsigned *classes,
-            const struct parser_definition *def) {
-    struct parser *ret = malloc(sizeof(*ret));
-    if(ret != NULL) {
-        memset(ret, 0, sizeof(*ret));
-        ret->classes = classes;
-        ret->def     = def;
-        ret->state   = def->start_state;
-    }
-    return ret;
+void parser_reset(pop3cmd_parser * p) {
+    if(p->arg1 != NULL) memset(p->arg1, 0, BUFFER_SIZE);
+    if(p->arg2 != NULL) memset(p->arg2, 0, BUFFER_SIZE);
+    p->line_size = 0;
+    p->finished = false;
+    p->state = UNDEF;
+    memset(p->line,0,BUFFER_SIZE);
 }
-
-void
-parser_reset(struct parser *p) {
-    p->state   = p->def->start_state;
-}
-
-const struct parser_event *
-parser_feed(struct parser *p, const uint8_t c) {
-    const unsigned type = p->classes[c];
-
-    p->e1.next = p->e2.next = 0;
-
-    const struct parser_state_transition *state = p->def->states[p->state];
-    const size_t n                              = p->def->states_n[p->state];
-    bool matched   = false;
-
-    for(unsigned i = 0; i < n ; i++) {
-        const int when = state[i].when;
-        if (state[i].when <= 0xFF) {
-            matched = (c == when);
-        } else if(state[i].when == ANY) {
-            matched = true;
-        } else if(state[i].when > 0xFF) {
-            matched = (type & when);
-        } else {
-            matched = false;
-        }
-
-        if(matched) {
-            state[i].act1(&p->e1, c);
-            if(state[i].act2 != NULL) {
-                p->e1.next = &p->e2;
-                state[i].act2(&p->e2, c);
-            }
-            p->state = state[i].dest;
-            break;
-        }
-    }
-    return &p->e1;
-}
-
-
-static const unsigned classes[0xFF] = {0x00};
-
-const unsigned *
-parser_no_classes(void) {
-    return classes;
-}
-
