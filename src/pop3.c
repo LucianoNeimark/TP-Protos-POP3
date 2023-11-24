@@ -66,7 +66,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
      state =  parseCommandInBuffer(key);
 
     if (state == ERROR_STATE) {
-        printf("ESTE\n");
+
         status = SELECTOR_SUCCESS;
         goto error_handling;
     }
@@ -166,7 +166,6 @@ unsigned int pop3ReadFile(struct selector_key* key){
         
         size_t i;
         for(i=0; i < strlen(line) ;i++) {
-            printf("LINE: %s\n", line[i] == '\n' ? "SI" : "NO");
             if(line[i] == '\n') {
                 if (i == 0 || line[i-1] != '\r' ){
                     buffer_write(serverBuffer, '\r');
@@ -305,6 +304,13 @@ unsigned int pop3ReadList(struct selector_key* key) {
 
     struct Client *client = key->data;
     selector_status status;
+
+    while(client->lastFileList != -1 && client->lastFileList < (int) client->file_cant && client->files[client->lastFileList].to_delete){
+            client->lastFileList++;
+    }
+
+
+
     if(client->lastFileList == (int) client->file_cant){
         client->lastFileList = -1;
         // escrivbime un \r\rn.
@@ -333,7 +339,15 @@ unsigned int pop3ReadList(struct selector_key* key) {
         ssize_t countFirst;
 
         bufferFirst = buffer_write_ptr(&client->serverBuffer, &limitFirst);
-        countFirst = snprintf((char*)bufferFirst,limitFirst, "+OK %d message%s\r\n", client->file_cant, client->file_cant > 1 ? "s" : "");
+        int cant_files_undel = 0;
+        for(int j =0 ; j<(int) client->file_cant; j++){
+            if(!client->files[j].to_delete){
+                cant_files_undel++;
+            }
+        }
+
+
+        countFirst = snprintf((char*)bufferFirst,limitFirst, "+OK %d message%s\r\n", cant_files_undel, cant_files_undel > 1 ? "s" : "");
         buffer_write_adv(&client->serverBuffer, countFirst);
         selector_set_interest_key(key, OP_WRITE);
         return WRITE_LIST;
@@ -343,6 +357,7 @@ unsigned int pop3ReadList(struct selector_key* key) {
     uint8_t *buffer;
     ssize_t count;
 
+    
     buffer = buffer_write_ptr(&client->serverBuffer, &limit);
 
     count = snprintf((char*)buffer,limit,"%d %d\r\n", client->files[client->lastFileList].file_id, client->files[client->lastFileList].file_size);
