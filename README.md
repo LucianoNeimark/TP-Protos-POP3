@@ -3,6 +3,8 @@
 Implementación de un servidor POP3 y cliente administrador sobre este. 
 Compatible con Mail User Agent como Dovecot y Thunderbird.
 
+Toda la documentación se encuentra en la carpeta docs
+
 ## Instrucciones de instalación y ejecución
 
 ### Servidor
