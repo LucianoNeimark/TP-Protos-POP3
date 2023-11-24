@@ -44,8 +44,8 @@ usage(const char *progname) {
         "   -h                 Imprime la ayuda y termina.\n"
         "   -p <POP3 port>     Puerto entrante conexiones POP3.\n"
         "   -P <conf port>     Puerto entrante conexiones configuracion\n"
-        "   -u <name>:<pass>   Usuario y contraseña de usuario que puede usar el proxy.\n"
-        "   -v                 Imprime información sobre la versión versión y termina.\n"
+        "   -u <name>:<pass>   Usuario y contraseña de un usuario que puede usar el servidor.\n"
+        "   -v                 Imprime información sobre la versión y termina.\n"
         "   -d <path-to-mails> Especifica la carpeta donde se guardarán los usuarios y sus mails.\n"
         "\n",
         progname);
