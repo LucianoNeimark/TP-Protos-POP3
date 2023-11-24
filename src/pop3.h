@@ -21,7 +21,9 @@
 
 #define MAX_EMAILS 10
 
+#ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0x4000
+#endif
 
 typedef struct file{
     char file_name[FILENAME_MAX];

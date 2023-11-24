@@ -240,7 +240,7 @@ stm_state_t handleCapaAuth(char * arg1, char * arg2, struct selector_key* key) {
     char * message = "+OK Capability list follows\r\n"
                      "CAPA\r\n"
                      "QUIT\r\n"
-                     "STAT\r\n"
+                    //  "STAT\r\n"
                      "LIST\r\n"
                      "RETR\r\n"
                      "DELE\r\n"
