@@ -60,7 +60,7 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
     args->POP3_addr = "::";
     args->POP3_port = 1110;
 
-    args->mng_addr   = "127.0.0.1";
+    args->mng_addr   = "::";
     args->mng_port   = 9090;
 
     args->disectors_enabled = true;

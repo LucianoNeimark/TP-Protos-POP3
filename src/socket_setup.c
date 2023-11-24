@@ -2,7 +2,7 @@
 
 int setupManagerSocket(char *addr, int port) {
 
-    const int managerSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    const int managerSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     
     if(managerSocket < 0) {
         LogError("Error creating manager socket: %s", strerror(errno));
@@ -12,12 +12,16 @@ int setupManagerSocket(char *addr, int port) {
     // Para reusar el socket
     setsockopt(managerSocket, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
 
-    struct sockaddr_in manager_addr;
+    struct sockaddr_in6 manager_addr;
     memset(&manager_addr, 0, sizeof(manager_addr));
-    manager_addr.sin_family     = AF_INET;
-    manager_addr.sin_port      = htons(port);
+    manager_addr.sin6_port = htons(port);
+    manager_addr.sin6_family = AF_INET6;
+    manager_addr.sin6_addr = in6addr_any;
 
-    if (inet_pton(AF_INET, addr, &manager_addr.sin_addr) < 0) {
+    // manager_addr.sin_family     = AF_INET;
+    // manager_addr.sin_port      = htons(port);
+
+    if (inet_pton(AF_INET, addr, &manager_addr.sin6_addr) < 0) {
         LogError("Error parsing manager address: %s", strerror(errno));
         goto manager_error;
     }
