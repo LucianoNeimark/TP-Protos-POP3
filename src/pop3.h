@@ -21,6 +21,8 @@
 
 #define MAX_EMAILS 10
 
+#define MSG_NOSIGNAL 0x4000
+
 typedef struct file{
     char file_name[FILENAME_MAX];
     int file_id;
@@ -66,8 +68,7 @@ typedef struct Client {
     char* activeFile;
     bool fileDoneReading;
     bool newLine;
-    bool seenEndOctet;
-    bool seenEndOctetR;
+
     FileState fileState;
 
     // state machine
@@ -78,10 +79,12 @@ typedef struct Client {
 
 } Client;
 
+
 void pop3Read(struct selector_key *key);
 void pop3Write(struct selector_key *key);
 void pop3Block(struct selector_key *key);
 void pop3Close(struct selector_key *key);
+
 unsigned int pop3ReadCommand(struct selector_key* key);
 unsigned int pop3ReadFile(struct selector_key* key);
 unsigned int pop3WriteFile(struct selector_key* key);
@@ -93,7 +96,7 @@ void closeConnection(struct selector_key *key);
 
 stm_state_t parseCommandInBuffer(struct selector_key* key);
 
- char * byte_stuffing(char* line);
+void user_free(Client * client);
 
 static const struct state_definition states [] = {
     {

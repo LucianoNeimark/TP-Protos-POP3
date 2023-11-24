@@ -9,16 +9,7 @@
 
 #define MAX_DIR_LEN 256
 
-// Declare args as extern to use it on other files that include args.h FIXME estara bien o es poco seguro? usar metodos para acceder quizas
 extern struct POP3args *args;
-
-// struct doh {
-//     char           *host;
-//     char           *ip;
-//     unsigned short  port;
-//     char           *path;
-//     char           *query;
-// };
 
 struct POP3args {
     char           *POP3_addr;
@@ -28,9 +19,6 @@ struct POP3args {
     unsigned short  mng_port;
 
     bool            disectors_enabled;
-
-    // struct doh      doh;
-
     char  directory[MAX_DIR_LEN];
 };
 

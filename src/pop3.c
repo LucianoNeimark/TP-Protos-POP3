@@ -3,6 +3,17 @@
 
 #define COMMAND_LENGTH 4
 
+void user_free(Client * client) {
+
+    if (client->name != NULL) {
+        free(client->name);
+    }
+
+    if (client->password != NULL) {
+        free(client->password);
+    }
+}
+
 void pop3Read(struct selector_key *key) {
     struct Client *client = key->data;
     stm_handler_read(&client->stm, key);
@@ -13,43 +24,12 @@ void pop3Write(struct selector_key *key) {
     stm_handler_write(&client->stm, key);
 }
 
-char * byte_stuffing(char* line) {
-    if (line == NULL) {
-        return NULL;
-    }
-    size_t len = strlen(line);
-    if (len == 0) {
-        char* empty_result = malloc(3);  
-        if (empty_result == NULL) {
-            return NULL;  
-        }
-        strcpy(empty_result, "\r\n");
-        return empty_result;
-    }
-
-    char* result = malloc(len+4);  
-    if (result == NULL) {
-        return NULL;  
-    }
-    size_t resultIndex = 0;
-    for (size_t i = 0; i < len; ++i) {
-        if(i==0) {
-            if (line[i] == '.') {
-                result[resultIndex++] = '.';
-            }
-        }
-        result[resultIndex++] = line[i];
-    }
-    strcpy(result + resultIndex, "\r\n");
-    return result;
-}
-
 
 unsigned int pop3ReadCommand(struct selector_key* key) {
     struct Client *client = key->data;
     size_t limit;
     uint8_t *buffer2 = buffer_write_ptr(&client->clientBuffer, &limit);
-    size_t bytes_read = recv(client->fd, buffer2, limit, 0x4000); // FIXME
+    size_t bytes_read = recv(client->fd, buffer2, limit, MSG_NOSIGNAL);
     buffer_write_adv(&client->clientBuffer, bytes_read);
     stm_state_t state;
     selector_status status;
@@ -66,7 +46,7 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
      state =  parseCommandInBuffer(key);
 
     if (state == ERROR_STATE) {
-        printf("ESTE\n");
+
         status = SELECTOR_SUCCESS;
         goto error_handling;
     }
@@ -100,7 +80,8 @@ unsigned int pop3WriteCommand(struct selector_key *key) {
     size_t limit;
     ssize_t count;
     uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
-    count = send(client->fd, buffer, limit, 0x4000);
+    printf("Entre al send\n");
+    count = send(client->fd, buffer, limit, MSG_NOSIGNAL);
     metrics_send_bytes(count);
     buffer_read_adv(&client->serverBuffer, count);
     stm_state_t state;
@@ -163,16 +144,24 @@ unsigned int pop3ReadFile(struct selector_key* key){
         buffer_write_adv(&client->serverBuffer, count);
 
     } else {
+        
         size_t i;
         for(i=0; i < strlen(line) ;i++) {
             if(line[i] == '\n') {
-                buffer_write(serverBuffer, '\r');
-                buffer_write(serverBuffer, '\n');
+                if (i == 0 || line[i-1] != '\r' ){
+                    buffer_write(serverBuffer, '\r');
+                    buffer_write(serverBuffer, '\n');
+                }else{
+                    buffer_write(serverBuffer, '\n');
+                }
                 client->newLine = true;
             } else if (line[i] == '.') {
                 if (client->newLine) {
                     buffer_write(serverBuffer, '.');
                     buffer_write(serverBuffer, '.');
+                    client->newLine = false;
+                }else{
+                    buffer_write(serverBuffer, line[i]);
                     client->newLine = false;
                 }
 
@@ -190,7 +179,10 @@ unsigned int pop3ReadFile(struct selector_key* key){
     if (status != SELECTOR_SUCCESS) {
         goto error_handling;
     }
-
+    if(line != NULL){
+        free(line);    
+    }
+    
     return WRITE_FILE;
 
     error_handling:
@@ -205,7 +197,7 @@ unsigned int pop3WriteFile(struct selector_key* key) {
     if (buffer_can_read(&client->serverBuffer)) {
         size_t size = 0;
         char *rbuffer = (char *)buffer_read_ptr(&client->serverBuffer, &size);
-        int bytes_read = (int)send(client->fd, rbuffer, size, 0x4000);
+        int bytes_read = (int)send(client->fd, rbuffer, size, MSG_NOSIGNAL); //deshardcoedade
         metrics_send_bytes(bytes_read);
 
         buffer_read_adv(&client->serverBuffer, bytes_read);
@@ -293,6 +285,13 @@ unsigned int pop3ReadList(struct selector_key* key) {
 
     struct Client *client = key->data;
     selector_status status;
+
+    while(client->lastFileList != -1 && client->lastFileList < (int) client->file_cant && client->files[client->lastFileList].to_delete){
+            client->lastFileList++;
+    }
+
+
+
     if(client->lastFileList == (int) client->file_cant){
         client->lastFileList = -1;
         // escrivbime un \r\rn.
@@ -321,7 +320,15 @@ unsigned int pop3ReadList(struct selector_key* key) {
         ssize_t countFirst;
 
         bufferFirst = buffer_write_ptr(&client->serverBuffer, &limitFirst);
-        countFirst = snprintf((char*)bufferFirst,limitFirst, "+OK %d message%s\r\n", client->file_cant, client->file_cant > 1 ? "s" : "");
+        int cant_files_undel = 0;
+        for(int j =0 ; j<(int) client->file_cant; j++){
+            if(!client->files[j].to_delete){
+                cant_files_undel++;
+            }
+        }
+
+
+        countFirst = snprintf((char*)bufferFirst,limitFirst, "+OK %d message%s\r\n", cant_files_undel, cant_files_undel > 1 ? "s" : "");
         buffer_write_adv(&client->serverBuffer, countFirst);
         selector_set_interest_key(key, OP_WRITE);
         return WRITE_LIST;
@@ -331,6 +338,7 @@ unsigned int pop3ReadList(struct selector_key* key) {
     uint8_t *buffer;
     ssize_t count;
 
+    
     buffer = buffer_write_ptr(&client->serverBuffer, &limit);
 
     count = snprintf((char*)buffer,limit,"%d %d\r\n", client->files[client->lastFileList].file_id, client->files[client->lastFileList].file_size);
@@ -355,7 +363,7 @@ unsigned int pop3WriteList(struct selector_key* key){
     size_t limit;
     ssize_t count;
     uint8_t *buffer = buffer_read_ptr(&client->serverBuffer, &limit);
-    count = send(client->fd, buffer, limit, 0x4000);
+    count = send(client->fd, buffer, limit, MSG_NOSIGNAL);
     metrics_send_bytes(count);
     buffer_read_adv(&client->serverBuffer, count);
 
@@ -386,15 +394,16 @@ void pop3Block(struct selector_key *key) {
 }
 
 void closeConnection(struct selector_key *key) {
-    // Client * client = key->data;
-
+    struct Client *client = key->data;
 
     if (key->fd != -1) {
         selector_unregister_fd(key->s, key->fd);
         close(key->fd);
     }
     LogInfo("Connection closed from %s", sockaddr_to_human_buffered((struct sockaddr*)&((struct Client *) key->data)->addr));
-    struct state_machine *stm = &((struct Client *) key->data)->stm;
+    struct state_machine *stm = &client->stm;
+    user_free(client);
+    parser_destroy(client->parser);
     stm_handler_close(stm, key);
     close(key->fd);
 }

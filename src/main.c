@@ -1,10 +1,3 @@
-/**
- * main.c - servidor proxy socks concurrente
- *
- * Interpreta los argumentos de línea de comandos, y monta un socket
- * pasivo. Por cada nueva conexión lanza un hilo que procesará de
- * forma bloqueante utilizando el protocolo SOCKS5.
- */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -64,8 +57,6 @@ struct connection
     socklen_t addrlen;
     struct sockaddr_in6 addr;
 };
-
-// #include "socks5.h
 
 /**
  * maneja cada conexión entrante
@@ -152,6 +143,7 @@ handle_error:
     {
         LogError(err_msg);
     }
+    parser_destroy(client->parser);
     if (client_fd != -1)
     {
         close(client_fd);
@@ -217,7 +209,7 @@ int main(int argc, char **argv)
     }
 
 
-    if (bind(server, (struct sockaddr *)&serveradr, sizeof(serveradr)) )
+    if (bind(server, (struct sockaddr *)&serveradr, sizeof(serveradr)) < 0 )
     {
         err_msg = "Unable to bind socket";
         goto finally;

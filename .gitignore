@@ -64,3 +64,4 @@ dkms.conf
 
 .bash_history
 .vscode
+../.vscode/settings.json
