@@ -50,9 +50,20 @@ ssize_t custom_getline(char **lineptr, FILE *file) {
 
 int populate_array(Client * client){
     file * f  = malloc(sizeof (file));
+    if (f == NULL) {
+        LogError("Unable to allocate memory for file");
+        return -1;
+    }
+
     struct stat file_info;
 
     char * path = malloc(sizeof(char) * MAX_SIZE_PATH);
+
+    if (path == NULL) {
+        LogError("Unable to allocate memory for path");
+        free(f);
+        return -1;
+    }
 
     if(get_path(path, client->name) == -1) {
         LogError("Unable to get path");
@@ -77,6 +88,13 @@ int populate_array(Client * client){
 
         if(file_iter->d_type == 8){ //FIXME DESHARDCODEAR EL 8
             char * user_path = malloc(sizeof(char) * MAX_SIZE_PATH);
+            if (user_path == NULL) {
+                LogError("Unable to allocate memory for user path");
+                free(f);
+                free(path);
+                return -1;
+            }
+
             get_user_path(user_path, path, file_iter->d_name);
             stat(user_path, &file_info);
             strcpy(f->file_name, file_iter->d_name);

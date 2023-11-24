@@ -6,16 +6,17 @@ manager_cmd_state manager_parser_feed(manager_cmd_parser * p, const uint8_t c);
 manager_cmd_parser * manager_parser_init(void) {
     // LogDebug("Initializing manager parser...");
     manager_cmd_parser *ret = malloc(sizeof(*ret));
-    
-    if(ret != NULL) {
-        memset(ret, 0, sizeof(*ret));
-        ret->state = M_UNDEF;
-        ret->finished = false;
-        ret->line_size = 0;
-        ret->arg1 = calloc(BUFFER_SIZE, sizeof(char));
-    } else {
-        ret->state = M_ERROR;
+    if (ret == NULL) {
+        LogError("Unable to allocate memory for manager parser");
+        return NULL;
     }
+    
+    memset(ret, 0, sizeof(*ret));
+    ret->state = M_UNDEF;
+    ret->finished = false;
+    ret->line_size = 0;
+    ret->arg1 = calloc(BUFFER_SIZE, sizeof(char));
+
     // LogDebug("Manager parser initialized");
     return ret;
 }
@@ -110,9 +111,9 @@ void manager_parser_destroy(manager_cmd_parser * p) {
 }
 
 void manager_parser_reset(manager_cmd_parser * p) {
-    if(p->arg1 != NULL) memset(p->arg1, 0, BUFFER_SIZE);
+    if(p->arg1 != NULL) memset(p->arg1, 0, UDP_BUFFER_SIZE);
     p->line_size = 0;
     p->finished = false;
     p->state = M_UNDEF;
-    memset(p->line, 0, BUFFER_SIZE);
+    memset(p->line, 0, UDP_BUFFER_SIZE);
 }

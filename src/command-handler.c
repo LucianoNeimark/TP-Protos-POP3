@@ -44,6 +44,11 @@ stm_state_t handleQuitAuth(char * arg1, char * arg, struct selector_key* key) {
     }
 
     char * message = malloc(100);
+    if (message == NULL) {
+        LogError("Unable to allocate memory for message");
+        return ERROR_STATE;
+    }
+
     if (client->file_cant == 0) {
         sprintf(message, "+OK POP3 server signing off (maildrop empty)\r\n");
     } else {
@@ -82,6 +87,11 @@ stm_state_t handleList(char * arg1, char * arg2, struct selector_key* key) {
         
     } else {
         char * message = malloc(100);
+        if (message == NULL) {
+            LogError("Unable to allocate memory for message");
+            return ERROR_STATE;
+        }
+
         for(unsigned int i = 0; i < client->file_cant; i++){
             if(client->files[i].file_id == atoi(arg1)){
                 if (!client->files[i].to_delete) {
@@ -187,13 +197,6 @@ stm_state_t handleUser(char * arg1, char * arg2, struct selector_key* key) {
     client->name = malloc(strlen(arg1) + 1);
     memcpy(client->name, arg1, strlen(arg1) + 1);
 
-    if (arg1 == NULL) {
-        // printf("Expected usage: USER [username]");
-    } else {
-        // printf("USER command! The user: %s\n", arg1);
-        // client->name = malloc(strlen(arg1) + 1);
-        // strcpy(client->name, arg1);
-    }
     return WRITE;
 }
 
@@ -289,6 +292,10 @@ CommandInfo * getTable(client_state state) {
 stm_state_t executeCommand(pop3cmd_parser * p, struct selector_key* key) {    
     struct Client *client = key->data;
     CommandInfo *commandTable = getTable(client->state);
+    if (commandTable == NULL) {
+        LogError("Unable to retrieve command table");
+        return ERROR_STATE;
+    }
 
     
     int i = 0;

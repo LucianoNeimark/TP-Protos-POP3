@@ -139,11 +139,13 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
     return;
 
 handle_error:
-    if (err_msg)
+    if (*err_msg)
     {
         LogError(err_msg);
     }
-    parser_destroy(client->parser);
+    if (client != NULL) {
+        parser_destroy(client->parser);
+    }
     if (client_fd != -1)
     {
         close(client_fd);
@@ -235,7 +237,7 @@ int main(int argc, char **argv)
     signal(SIGINT, sigterm_handler);
 
     // Trabajamos aca
-    if (server != -1 && selector_fd_set_nio(server) == -1)
+    if (selector_fd_set_nio(server) == -1)
     {
         err_msg = "Unable to set server socket as non-blocking";
         goto finally;

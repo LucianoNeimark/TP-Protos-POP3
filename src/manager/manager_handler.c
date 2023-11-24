@@ -42,14 +42,18 @@ void manager_handle_connection(struct selector_key *key) {
     if (bytes_read <= 0) {
         LogError("Unable to recieve message from manager: %s", strerror(errno));
         manager_parser_destroy(the_manager.parser);
-        return ;
+        return;
     }
 
     the_manager.parser = manager_parser_init();
+    if (the_manager.parser == NULL) {
+        LogError("Unable to create parser");
+        return;
+    }
 
     if(the_manager.parser->state == M_ERROR) {
         LogError("Unable to initialize manager parser");
-        return ;
+        return;
     }
 
     /*manager_cmd_state parser_state = */manager_parser_analyze(the_manager.parser, the_manager.manager_buffer, UDP_BUFFER_SIZE);
@@ -62,12 +66,6 @@ void manager_handle_connection(struct selector_key *key) {
         manager_parser_destroy(the_manager.parser);
         return;
     }
-
-    // if(parser_state == M_ERROR) {
-    //     LogError("Unable to parse manager command");
-    //     manager_parser_destroy(the_manager.parser);
-    //     return ;
-    // }
 
     if(execute_state == M_ERROR) {
         LogError("Unable to execute manager command");
@@ -117,6 +115,12 @@ void handleCapa(char * request, char * response) {
 }
 
 void handleUsers(char * request, char * response) {
+
+     if (request == NULL) {
+        sprintf(response, "-ERR Please specify offset\r\n");
+        return ;       
+    }
+
     struct user * users = get_users();
 
     char aux[UDP_BUFFER_SIZE - 1];
@@ -128,10 +132,7 @@ void handleUsers(char * request, char * response) {
 
     aux_size += sprintf(aux + aux_size, "+OK User list follows (%d - %d):\n", offset, (offset+9 > user_count)? user_count:offset+9);
 
-    if (request == NULL) {
-        sprintf(response, "-ERR Please specify offset\r\n");
-        return ;       
-    }
+   
 
     if (offset < 1 || offset > user_count) {
         sprintf(response, "-ERR Offset must be between 1 and %d\r\n", user_count);
