@@ -174,8 +174,14 @@ unsigned int pop3ReadFile(struct selector_key* key){
                     buffer_write(serverBuffer, '.');
                     buffer_write(serverBuffer, '.');
                     client->newLine = false;
+                }else{
+                    buffer_write(serverBuffer, line[i]);
+                    client->newLine = false;
                 }
 
+            }else if (line[i] == 0){
+                printf("entre!!!1\n\n\n\n");
+                continue;
             }
             else {
                 buffer_write(serverBuffer, line[i]);
