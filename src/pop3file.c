@@ -135,17 +135,21 @@ char* read_file(char *file_name, Client * client) {
 char* read_first_line_file(char *file_name, Client * client){
      // Check if the file is already open
 
-    char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
-    get_file_path(file_path, args->directory, client->name, file_name);
+    
     
     if (client->fileState.file == NULL) {
+
+        char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
+        get_file_path(file_path, args->directory, client->name, file_name);
         // Open the file
         client->fileState.file = fopen(file_path, "r");
         if (client->fileState.file == NULL) {
             LogError("RETR: Unable to open file");
+            
             return NULL;
         }
         LogInfo("RETR: Opened file %s", file_path);
+        free(file_path);
     }
 
     char *line = NULL;
