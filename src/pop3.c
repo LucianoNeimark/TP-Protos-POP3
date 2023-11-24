@@ -190,7 +190,10 @@ unsigned int pop3ReadFile(struct selector_key* key){
     if (status != SELECTOR_SUCCESS) {
         goto error_handling;
     }
-
+    if(line != NULL){
+        free(line);    
+    }
+    
     return WRITE_FILE;
 
     error_handling:
