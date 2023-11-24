@@ -85,7 +85,6 @@ typedef struct Client {
 void pop3Read(struct selector_key *key);
 void pop3Write(struct selector_key *key);
 void pop3Block(struct selector_key *key);
-void pop3Close(struct selector_key *key);
 
 unsigned int pop3ReadCommand(struct selector_key* key);
 unsigned int pop3ReadFile(struct selector_key* key);

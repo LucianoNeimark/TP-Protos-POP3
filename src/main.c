@@ -36,7 +36,7 @@ static const fd_handler pop3Handlers = {
     .handle_read = pop3Read,
     .handle_write = pop3Write,
     .handle_block = pop3Block,
-    .handle_close = pop3Close,
+    .handle_close = NULL,
 };
 
 struct POP3args *args;

@@ -428,9 +428,6 @@ void closeConnection(unsigned int state, struct selector_key *key) {
     free(key->data);
 }
 
-void pop3Close(struct selector_key *key) {
-    
-}
 
 void pop3Error(unsigned int n, struct selector_key *key) {
     printf("pop3Error\n");
