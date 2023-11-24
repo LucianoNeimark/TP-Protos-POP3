@@ -43,7 +43,7 @@ ssize_t custom_getline(char **lineptr, FILE *file) {
     // if(count < 0){
     //     return count;
     // }
-    (*lineptr)[count] = '\0';  // Null-terminate the string
+    (*lineptr)[count] = 0;  // Null-terminate the string
     return count;
 }
 

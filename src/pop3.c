@@ -163,11 +163,17 @@ unsigned int pop3ReadFile(struct selector_key* key){
         buffer_write_adv(&client->serverBuffer, count);
 
     } else {
+        
         size_t i;
         for(i=0; i < strlen(line) ;i++) {
+            printf("LINE: %s\n", line[i] == '\n' ? "SI" : "NO");
             if(line[i] == '\n') {
-                buffer_write(serverBuffer, '\r');
-                buffer_write(serverBuffer, '\n');
+                if (i == 0 || line[i-1] != '\r' ){
+                    buffer_write(serverBuffer, '\r');
+                    buffer_write(serverBuffer, '\n');
+                }else{
+                    buffer_write(serverBuffer, '\n');
+                }
                 client->newLine = true;
             } else if (line[i] == '.') {
                 if (client->newLine) {
@@ -179,9 +185,6 @@ unsigned int pop3ReadFile(struct selector_key* key){
                     client->newLine = false;
                 }
 
-            }else if (line[i] == 0){
-                printf("entre!!!1\n\n\n\n");
-                continue;
             }
             else {
                 buffer_write(serverBuffer, line[i]);
@@ -214,7 +217,7 @@ unsigned int pop3WriteFile(struct selector_key* key) {
     if (buffer_can_read(&client->serverBuffer)) {
         size_t size = 0;
         char *rbuffer = (char *)buffer_read_ptr(&client->serverBuffer, &size);
-        int bytes_read = (int)send(client->fd, rbuffer, size, 0x4000);
+        int bytes_read = (int)send(client->fd, rbuffer, size, 0x8000); //deshardcoedade
         metrics_send_bytes(bytes_read);
 
         buffer_read_adv(&client->serverBuffer, bytes_read);
