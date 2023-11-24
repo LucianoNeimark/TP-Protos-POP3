@@ -4,6 +4,7 @@
 #define COMMAND_LENGTH 4
 
 void user_free(Client * client) {
+    printf("user_free\n");
 
     if (client == NULL) {
         return;
@@ -20,13 +21,22 @@ void user_free(Client * client) {
 }
 
 void pop3Read(struct selector_key *key) {
+    printf("pop3Read\n");
     struct Client *client = key->data;
+
+    if (key->data == NULL) {
+        return;
+    }
     stm_handler_read(&client->stm, key);
+
+    printf("pop3Read\n");
+
 }
 
 void pop3Write(struct selector_key *key) {
     struct Client *client = key->data;
     stm_handler_write(&client->stm, key);
+    printf("pop3Write\n");
 }
 
 
@@ -44,7 +54,8 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
     }
 
     if (bytes_read == 0 && !buffer_can_read(&client->clientBuffer)) {
-        closeConnection(key);
+        // closeConnection(key);
+
         return CLOSE_STATE;
     }
 
@@ -110,7 +121,7 @@ unsigned int pop3WriteCommand(struct selector_key *key) {
     }
 
     if(client->state == CLOSED){
-        closeConnection(key);
+        // closeConnection(key);
         return CLOSE_STATE;
     }
 
@@ -398,28 +409,29 @@ void pop3Block(struct selector_key *key) {
     // sock_blocking(((Client *)(key->data))->fd);
 }
 
-void closeConnection(struct selector_key *key) {
+void closeConnection(unsigned int state, struct selector_key *key) {
+    printf("close connection\n");
     struct Client *client = key->data;
 
     if (key->fd != -1) {
         selector_unregister_fd(key->s, key->fd);
-        close(key->fd);
+        // close(key->fd);
     }
     struct state_machine *stm = &client->stm;
     parser_destroy(client->parser);
     stm_handler_close(stm, key);
     user_free(client);
+    metrics_close_connection();
     close(key->fd);
+    free(key->data);
 }
 
 void pop3Close(struct selector_key *key) {
-    struct state_machine *stm = &((struct Client *) key->data)->stm;
-    metrics_close_connection();
-    stm_handler_close(stm, key);
-    // free(key->data);
+    
 }
 
 void pop3Error(unsigned int n, struct selector_key *key) {
+    printf("pop3Error\n");
     size_t limit;
     struct Client *client = key->data;
     uint8_t * sBuffer = buffer_write_ptr(&client->serverBuffer, &limit);
