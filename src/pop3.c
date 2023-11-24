@@ -59,9 +59,8 @@ unsigned int pop3ReadCommand(struct selector_key* key) {
     }
 
     if (bytes_read == 0 && !buffer_can_read(&client->clientBuffer)) {
-        state = ERROR_STATE;
-        status = SELECTOR_SUCCESS;
-        goto error_handling;
+        closeConnection(key);
+        return CLOSE_STATE;
     }
 
      state =  parseCommandInBuffer(key);
@@ -402,6 +401,7 @@ void closeConnection(struct selector_key *key) {
 
 void pop3Close(struct selector_key *key) {
     struct state_machine *stm = &((struct Client *) key->data)->stm;
+    metrics_close_connection();
     stm_handler_close(stm, key);
 }
 

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdarg.h>
 
+
 // Descomentar para loguear en modo DEBUG (con más detalle).
 #define DEBUG true
 
