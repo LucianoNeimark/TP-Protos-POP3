@@ -14,7 +14,7 @@
 #include "manager_parser.h"
 #include "metrics.h"
 #include "users.h"
-#include "../logger/logger.h"
+#include "logger.h"
 
 #include <stdio.h> // temp
 

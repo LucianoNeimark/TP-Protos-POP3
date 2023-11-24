@@ -2,13 +2,60 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include "include/socket_setup.h"
 
+int setupServerSocket(char *addr, int port) {
+
+    struct sockaddr_in6 serveradr;
+    const int server = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
+
+    if(server < 0) {
+        LogError("Error creating server socket: %s", strerror(errno));
+        goto socket_error;
+    }
+
+
+     // man 7 ip. no importa reportar nada si falla.
+    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
+
+    memset(&serveradr, 0, sizeof(serveradr));
+    serveradr.sin6_port = htons(port);
+    serveradr.sin6_family = AF_INET6;
+    serveradr.sin6_addr = in6addr_any;
+
+    if (inet_pton(AF_INET, addr, &serveradr.sin6_addr)< 0) {
+        LogError("Invalid address");
+        goto socket_error;
+    }
+
+    if (bind(server, (struct sockaddr *)&serveradr, sizeof(serveradr)) < 0 )
+    {
+        LogError("Unable to bind socket");
+        goto socket_error;
+
+    }
+
+    if (listen(server, 20) < 0)
+    {
+        LogError("Unable to listen");
+        goto socket_error;
+
+    }
+
+    LogInfo("Listening on TCP %s:%d", addr, port);
+
+    return server;
+
+    socket_error:
+    if (server != -1) close(server);
+    return -1;
+}
+
 int setupManagerSocket(char *addr, int port) {
 
     const int managerSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     
     if(managerSocket < 0) {
         LogError("Error creating manager socket: %s", strerror(errno));
-        goto manager_error;
+        goto socket_error;
     }
 
     // Para reusar el socket
@@ -25,19 +72,19 @@ int setupManagerSocket(char *addr, int port) {
 
     if (inet_pton(AF_INET, addr, &manager_addr.sin6_addr) < 0) {
         LogError("Error parsing manager address: %s", strerror(errno));
-        goto manager_error;
+        goto socket_error;
     }
 
     if(bind(managerSocket, (struct sockaddr*) &manager_addr, sizeof(manager_addr)) < 0) {
         LogError("Error binding manager socket: %s", strerror(errno));
-        goto manager_error;
+        goto socket_error;
     }
 
     LogInfo("Manager listening on UDP %s:%d", addr, port);
 
     return managerSocket;
 
-    manager_error:
+    socket_error:
     if (managerSocket != -1) close(managerSocket);
     return -1;
 }

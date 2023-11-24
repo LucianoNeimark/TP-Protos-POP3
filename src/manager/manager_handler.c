@@ -211,5 +211,5 @@ extern bool done;
 void handleStop(char * request, char * response) {
     sprintf(response, "+OK Shutting down\r\n");
     done = true;
-    exit(0);
+    // exit(0);
 }

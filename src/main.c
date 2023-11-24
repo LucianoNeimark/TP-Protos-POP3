@@ -23,7 +23,7 @@
 #include "include/socket_setup.h"
 #include "include/args.h"
 #include "include/selector.h"
-#include "logger/logger.h"
+#include "include/logger.h"
 
 #define SELECTOR_SIZE 1024
 
@@ -169,9 +169,10 @@ int main(int argc, char **argv)
 
     const char *err_msg = 0;
 
-    LogInfo("Starting POP3 server on %s:%d", args->POP3_addr, args->POP3_port);
+    int server = -1;
+    int managerSocket = -1;
 
-    // const int server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    LogInfo("Starting POP3 server on %s:%d", args->POP3_addr, args->POP3_port);
 
     const struct selector_init init = {
         .signal = SIGALRM,
@@ -184,52 +185,20 @@ int main(int argc, char **argv)
     fd_selector selector = NULL;
     selector_status selectStatus = selector_init(&init);
 
-
-
-    int managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
-    struct sockaddr_in6 serveradr;
-    int server = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-
     if (selectStatus != SELECTOR_SUCCESS)
         goto finally;
 
-     // man 7 ip. no importa reportar nada si falla.
-    setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
-
-    memset(&serveradr, 0, sizeof(serveradr));
-    serveradr.sin6_port = htons(args->POP3_port);
-    serveradr.sin6_family = AF_INET6;
-    serveradr.sin6_addr = in6addr_any;
-
-    if (inet_pton(AF_INET, args->POP3_addr, &serveradr.sin6_addr)< 0) {
-        LogError("Invalid address");
-    }
-
-
-    if (server < 0)
+    server = setupServerSocket(args->POP3_addr, args->POP3_port);
+    if (server == -1)
     {
-        err_msg = "Unable to create socket\n";
+        LogError("Unable to setup server socket");
         goto finally;
     }
 
-
-    if (bind(server, (struct sockaddr *)&serveradr, sizeof(serveradr)) < 0 )
-    {
-        err_msg = "Unable to bind socket";
-        goto finally;
-    }
-
-    if (listen(server, 20) < 0)
-    {
-        err_msg = "Unable to listen";
-        goto finally;
-    }
-
-    LogInfo("Listening on TCP %s:%d", args->POP3_addr, args->POP3_port);
-
+    managerSocket = setupManagerSocket(args->mng_addr, args->mng_port);
     if (managerSocket == -1)
     {
-        // err_msg = "Unable to setup manager socket";
+        LogError("Unable to setup manager socket");
         goto finally;
     }
 

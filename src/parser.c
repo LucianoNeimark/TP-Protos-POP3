@@ -61,10 +61,9 @@ void process_buffer(pop3cmd_parser * p) {
     } else if (p->state != ERROR && p->arg2[0] == 0) {
         memcpy(p->arg2,p->line,p->line_size);
     } else {
-        p->state = ERROR;
-        // LogError("Error parsing command %s from %s", p->line, sockaddr_to_human_buffered((struct sockaddr*)&p->addr));
+        // ignore other arguments
     }
-    // LogInfo("Command parsed: %s", p->line);
+    LogDebug("Command parsed: %s", p->line);
 }
 
 pop3cmd_state parser_feed(pop3cmd_parser * p, uint8_t c) {

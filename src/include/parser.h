@@ -7,7 +7,7 @@
 #include <stdint.h>
 
 #include "constants.h"
-#include "../logger/logger.h"
+#include "logger.h"
 #include "netutils.h"
 
 typedef enum pop3cmd_state {

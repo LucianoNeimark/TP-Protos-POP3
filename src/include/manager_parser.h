@@ -8,7 +8,7 @@
 #include <ctype.h> 
 
 #include "constants.h"
-#include "../logger/logger.h"
+#include "logger.h"
 
 typedef enum manager_cmd_state {
     M_USERS,
