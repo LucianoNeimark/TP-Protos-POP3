@@ -19,7 +19,7 @@
 #include "include/pop3cmd.h"
 #include "include/command_handler.h"
 #include "include/manager_handler.h"
-#include "include/metrics.h"  // temporal (hasta que corramos pop3_handle_connection)
+#include "include/metrics.h" 
 #include "include/socket_setup.h"
 #include "include/args.h"
 #include "include/selector.h"
@@ -29,9 +29,6 @@
 
 bool done = false;
 
-// llamamos a nuestros metodos de leer y escribir para que los use el selector cuando le toca a cada cliente.
-//  Donde escribiamos ahora copiamos al buffer y seteamos la intencion
-//  Cuando me toca se llama a estos metodos de abajo dependiendo la intencion que haya seteado antes.
 static const fd_handler pop3Handlers = {
     .handle_read = pop3Read,
     .handle_write = pop3Write,
@@ -97,7 +94,7 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
     client->fileState.file = NULL;
     client->stm.initial = WRITE;
     client->stm.max_state = ERROR_STATE;
-    client->stm.states = states; // para cada estado un afuncion;
+    client->stm.states = states; 
     stm_init(&client->stm);
     client->newLine = true;
     client->lastFileList = -1;
@@ -113,7 +110,7 @@ static void pop3_handle_connection(/*int fd, const struct sockaddr *caddr*/ stru
 
     char *s = "+OK POP3 server ready\r\n";
 
-    // Since the output buffer is empty, we can write directly to it
+    // Como el buffer esta vacío, podemos escribir directamente en el
     for (int i = 0; s[i]; i++)
     {
         buffer_write(&client->serverBuffer, s[i]);
@@ -202,12 +199,9 @@ int main(int argc, char **argv)
         goto finally;
     }
 
-    // registrar sigterm es útil para terminar el programa normalmente.
-    // esto ayuda mucho en herramientas como valgrind.
     signal(SIGTERM, sigterm_handler);
     signal(SIGINT, sigterm_handler);
 
-    // Trabajamos aca
     if (selector_fd_set_nio(server) == -1)
     {
         err_msg = "Unable to set server socket as non-blocking";
@@ -222,7 +216,7 @@ int main(int argc, char **argv)
     }
 
     const fd_handler passiveHandler = {
-        .handle_read = pop3_handle_connection, // TODO Es el saludo, registra el cliente y sus cosas en el selector.
+        .handle_read = pop3_handle_connection,
         .handle_write = NULL,
         .handle_close = NULL,
         .handle_block = NULL,

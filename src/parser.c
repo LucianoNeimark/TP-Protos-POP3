@@ -61,7 +61,7 @@ void process_buffer(pop3cmd_parser * p) {
     } else if (p->state != ERROR && p->arg2[0] == 0) {
         memcpy(p->arg2,p->line,p->line_size);
     } else {
-        // ignore other arguments
+        // Ignora otros argumentos
     }
     LogDebug("Command parsed: %s", p->line);
 }

@@ -25,26 +25,23 @@ port(const char *s) {
 
 static void
 directory(char * dest, char * src){
-
-    LogInfo("Source port: %s",src);
-    LogInfo("Destination port: %s",dest);
     strcpy(dest,src);
 }
 
 static void
 version(void) {
-    LogInfo("POP3 version 0.0\n"
+    LogInfo(        "POP3 version 0.0\n"
                     "ITBA Protocolos de Comunicación 2023/2 -- Grupo 5\n"
-                    "AQUI VA LA LICENCIA\n");
+                    "MIT License \n"
+                    "Copyright (c) 2023 Grupo 5 \n"
+            );
 }
 
 static void
 usage(const char *progname) {
-    LogError("Usage: %s [OPTION]...\n"
+    LogInfo("Usage: %s [OPTION]...\n"
         "\n"
         "   -h                 Imprime la ayuda y termina.\n"
-        "   -l <POP3 addr>     Dirección donde servirá el servidor POP3.\n"
-        "   -L <conf addr>     Dirección donde servirá el servicio de management.\n"
         "   -p <POP3 port>     Puerto entrante conexiones POP3.\n"
         "   -P <conf port>     Puerto entrante conexiones configuracion\n"
         "   -u <name>:<pass>   Usuario y contraseña de usuario que puede usar el proxy.\n"
@@ -52,7 +49,7 @@ usage(const char *progname) {
         "   -d <path-to-mails> Especifica la carpeta donde se guardarán los usuarios y sus mails.\n"
         "\n",
         progname);
-    exit(1);
+    exit(0);
 }
 
 void 
@@ -72,30 +69,16 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
     while (true) {
         int option_index = 0;
         static struct option long_options[] = {
-            { "doh-ip",    required_argument, 0, 0xD001 },
-            { "doh-port",  required_argument, 0, 0xD002 },
-            { "doh-host",  required_argument, 0, 0xD003 },
-            { "doh-path",  required_argument, 0, 0xD004 },
-            { "doh-query", required_argument, 0, 0xD005 },
             { 0,           0,                 0, 0 }
         };
 
-        c = getopt_long(argc, argv, "hl:L:p:P:u:vd:t:f:", long_options, &option_index);
+        c = getopt_long(argc, argv, "hp:P:u:vd:t:f:", long_options, &option_index);
         if (c == -1)
             break;
 
         switch (c) {
             case 'h':
                 usage(argv[0]);
-                break;
-            case 'l':
-                args->POP3_addr = optarg;
-                break;
-            case 'L':
-                args->mng_addr = optarg;
-                break;
-            case 'N':
-                args->disectors_enabled = false;
                 break;
             case 'p':
                 args->POP3_port = port(optarg);
@@ -110,11 +93,9 @@ parse_args(const int argc, char **argv, struct POP3args *args) {
                 version();
                 exit(0);
             case 'd':
-                printf("directory: %s\n", optarg);
                 directory(args->directory,optarg);
                 break;
             default:
-                LogError("Unknown argument %d.\n", c);
                 exit(1);
         }
     }

@@ -54,7 +54,6 @@ int main(int argc, char **argv) {
             return -1;
         }
 
-        printf("%s", client.read_buffer);
     }
 
     return 1;

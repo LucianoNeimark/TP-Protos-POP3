@@ -23,7 +23,7 @@ enum pop3cmd_state pop3cmd_parser_feed (struct pop3cmd_parser *p, uint8_t b);
 enum pop3cmd_state
 pop3cmd_consume(buffer *b, struct pop3cmd_parser *p, bool *errored);
 
-/** libera recursos internos del parser */
+/* Libera los recursos del parser */
 void pop3cmd_parser_close(struct pop3cmd_parser *p);
 
 #endif

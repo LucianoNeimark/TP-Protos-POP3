@@ -14,16 +14,27 @@ struct user {
     char pass[MAX_PASS_LENGTH];
 };
 
+/* Agrega dinamicamente un usuario valido al servidor */
 int user_add(char * string);
 
+/* Borra dinamicamente un usuario valido del servidor */
 int user_remove(char * username);
 
+
+/* Retorna -1 si no existe el usuario en el servidor, un numero mayor o igual a 0 en otro caso */
 int user_find(char * username);
 
+
+/*
+    Retorna true si existe un usuario con esa contraseña
+    Retorna false si no existe un usuario con esa contraseña
+*/
 bool user_check_valid(char * username, char* password);
 
+/* Devuelve la cantidad de usuarios del servidor */
 int get_user_count(void);
 
+/* Devuelve un arreglo de usuarios del servidor */
 struct user * get_users(void);
 
 #endif

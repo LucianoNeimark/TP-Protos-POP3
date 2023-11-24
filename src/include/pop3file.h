@@ -13,12 +13,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+/* Popula el arreglo de mails del cliente */
 int populate_array(Client * client);
 
-char* read_file(char *file_name, Client * client);
-
+/*Lee una parte del mail*/
 char* read_first_line_file(char *file_name, Client * client);
-ssize_t custom_getline(char **lineptr, FILE *stream);
+
+/*Funcion interna que usa read_first_line_file para leer parte del mail */
+ssize_t private_getline(char **lineptr, FILE *stream);
+
+/* Borra un archivo del directorio */
 int remove_file(char * file_name, Client * client);
 
 #endif // POP3FILE_H

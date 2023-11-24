@@ -7,7 +7,7 @@
 
 
 // Descomentar para loguear en modo DEBUG (con más detalle).
-#define DEBUG true
+#define DEBUG false
 
 void Log(FILE * const stream, const char * prefix, const char * const format, const char * suffix, va_list arguments);
 

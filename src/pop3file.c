@@ -3,7 +3,7 @@
 #include "include/pop3file.h"
 #include <stdio.h>
 
-#define MAX_SIZE_PATH 1024      // TODO: 256 -> 1024 para que compile
+#define MAX_SIZE_PATH 1024
 
 static int get_path(char * path, char *file_name) {
     return snprintf(path, MAX_SIZE_PATH, "%s/%s", args->directory, file_name);
@@ -20,7 +20,7 @@ static int get_file_path(char * dest, char * path, char * user, char *file_name)
 #include <stdio.h>
 #include <stdlib.h>
 
-ssize_t custom_getline(char **lineptr, FILE *file) {
+ssize_t private_getline(char **lineptr, FILE *file) {
     if ( lineptr == NULL || file == NULL) {
         return -1;
     }
@@ -31,21 +31,13 @@ ssize_t custom_getline(char **lineptr, FILE *file) {
     }
     
     size_t count = 0;
-
-    // Allocate initial buffer or expand existing buffer
         *lineptr = malloc(BUFFER_SIZE);
         if (*lineptr == NULL) {
-            return -1;  // Allocation error
+            return -1;
         }
 
-    count = read(fd, *lineptr, BUFFER_SIZE-1); // para el 0! (no 1)
-    // imprimi lline pointer
-    
-
-    // if(count < 0){
-    //     return count;
-    // }
-    (*lineptr)[count] = 0;  // Null-terminate the string
+    count = read(fd, *lineptr, BUFFER_SIZE-1); 
+    (*lineptr)[count] = 0; 
     return count;
 }
 
@@ -119,80 +111,34 @@ int populate_array(Client * client){
     return 1;
 }
 
-char* read_file(char *file_name, Client * client) {
-    char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
-    get_file_path(file_path, args->directory, client->name, file_name);
-
-    int file_descriptor = open(file_path, O_RDONLY);
-    if (file_descriptor == -1) {
-        perror("Error opening file");
-        return NULL;
-    }
-
-    off_t file_size = lseek(file_descriptor, 0, SEEK_END);
-    lseek(file_descriptor, 0, SEEK_SET);
-
-    char *file_content = malloc(file_size + 1);  // +1 for null terminator
-    if (file_content == NULL) {
-        perror("Error allocating memory for file content");
-        close(file_descriptor);
-        return NULL;
-    }
-
-    ssize_t bytes_read = read(file_descriptor, file_content, file_size);
-    if (bytes_read == -1) {
-        perror("Error reading file");
-        close(file_descriptor);
-        free(file_content);
-        return NULL;
-    }
-
-    // Null-terminate the content
-    file_content[bytes_read] = '\0';
-
-    // Close the file
-    close(file_descriptor);
-
-    return file_content;
-}
-
 char* read_first_line_file(char *file_name, Client * client){
-     // Check if the file is already open
-
-    
-    
+     // Verificar que el file no este abierto
     if (client->fileState.file == NULL) {
-
         char * file_path = malloc(sizeof(char) * MAX_SIZE_PATH);
         get_file_path(file_path, args->directory, client->name, file_name);
-        // Open the file
+        // Abrir el archivo
         client->fileState.file = fopen(file_path, "r");
         if (client->fileState.file == NULL) {
             LogError("RETR: Unable to open file");
-            
             return NULL;
         }
         LogInfo("RETR: Opened file %s", file_path);
         free(file_path);
     }
-
     char *line = NULL;
-    ssize_t bytesRead = custom_getline(&line, client->fileState.file);
-
+    ssize_t bytesRead = private_getline(&line, client->fileState.file);
     if(bytesRead < 0){
         LogError("RETR: Unable to read line from file");
-        // todo return ERROR!!!!!!!!!!!!!!!!!!!
     }
 
     if (bytesRead == 0) {
         LogInfo("RETR: Reached end of file. Closing file");
-        // Close the file when we reach the end
+        // Cerramos el archivo cuando llegamos al final.
         fclose(client->fileState.file);
         client->fileState.file = NULL;
         free(line);
         return NULL;
     }
-
     return line;
 
 }

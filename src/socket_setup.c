@@ -13,7 +13,6 @@ int setupServerSocket(char *addr, int port) {
     }
 
 
-     // man 7 ip. no importa reportar nada si falla.
     setsockopt(server, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int));
 
     memset(&serveradr, 0, sizeof(serveradr));
@@ -67,8 +66,6 @@ int setupManagerSocket(char *addr, int port) {
     manager_addr.sin6_family = AF_INET6;
     manager_addr.sin6_addr = in6addr_any;
 
-    // manager_addr.sin_family     = AF_INET;
-    // manager_addr.sin_port      = htons(port);
 
     if (inet_pton(AF_INET, addr, &manager_addr.sin6_addr) < 0) {
         LogError("Error parsing manager address: %s", strerror(errno));

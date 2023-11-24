@@ -2,13 +2,12 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 #include "include/command_handler.h"
 #include "include/pop3.h"
-//FIXME mover a alguna libreria o algo que tenga sentido. Aca suelto es horrible
+
 void write_to_client(Client * client, char * message){
     size_t limit;
     uint8_t *buffer;
     ssize_t count;
 
-    // printf("Sending: %s\n", message);
     buffer = buffer_write_ptr(&client->serverBuffer, &limit);
     count = snprintf((char *) buffer, limit, "%s", message);
     buffer_write_adv(&client->serverBuffer, count);
@@ -126,8 +125,7 @@ stm_state_t handleRetr(char * arg1, char * arg2, struct selector_key* key) {
             write_to_client(client, message);
             client->activeFile = client->files[i].file_name;
             client->fileDoneReading = false;
-            // buffer_reset(&client->serverBuffer);
-            // pop3ReadFile(key);
+            
             free(message);
             return WRITE_FILE;
         }
@@ -190,12 +188,9 @@ stm_state_t handleRset(char * arg1, char * arg2, struct selector_key* key) {
 stm_state_t handleUser(char * arg1, char * arg2, struct selector_key* key) {
     struct Client *client = key->data;
 
-    // Send +OK message
     char * message = "+OK\r\n";
     write_to_client(client, message);
-    //Enter the USER state (So then you expect a PASS command or a QUIT RFC page 12)
 
-    //Save client name into client struct
     client->name = malloc(strlen(arg1) + 1);
     memcpy(client->name, arg1, strlen(arg1) + 1);
 
