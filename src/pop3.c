@@ -5,6 +5,10 @@
 
 void user_free(Client * client) {
 
+    if (client == NULL) {
+        return;
+    }
+
     if (client->name != NULL) {
         free(client->name);
     }
@@ -12,6 +16,7 @@ void user_free(Client * client) {
     if (client->password != NULL) {
         free(client->password);
     }
+
 }
 
 void pop3Read(struct selector_key *key) {
@@ -400,11 +405,10 @@ void closeConnection(struct selector_key *key) {
         selector_unregister_fd(key->s, key->fd);
         close(key->fd);
     }
-    LogInfo("Connection closed from %s", sockaddr_to_human_buffered((struct sockaddr*)&((struct Client *) key->data)->addr));
     struct state_machine *stm = &client->stm;
-    user_free(client);
     parser_destroy(client->parser);
     stm_handler_close(stm, key);
+    user_free(client);
     close(key->fd);
 }
 
@@ -412,6 +416,7 @@ void pop3Close(struct selector_key *key) {
     struct state_machine *stm = &((struct Client *) key->data)->stm;
     metrics_close_connection();
     stm_handler_close(stm, key);
+    // free(key->data);
 }
 
 void pop3Error(unsigned int n, struct selector_key *key) {

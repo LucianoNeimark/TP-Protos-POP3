@@ -201,14 +201,14 @@ stm_state_t handlePass(char * arg1, char * arg2, struct selector_key* key) {
     struct Client *client = key->data;
 
     if (arg1 == NULL) {
-        write_to_client(client, "Expected usage: PASS [password]"); //FIXME RFC ( TODO esto es asi? le tiro pass sin nada e intenta autenticarlo)
+        write_to_client(client, "Expected usage: PASS [password]");
     } else if (client->name == NULL) {
         write_to_client(client, "-ERR No username given.\r\n");
     } else {
         if (user_check_valid(client->name, arg1)) {
             LogInfo("User \"%s\" logged in from %s", client->name, sockaddr_to_human_buffered((struct sockaddr*)&client->addr));
             write_to_client(client, "+OK Logged in.\r\n");
-            client->password = malloc(strlen(arg1) + 1); //Necesario? Quizas con cambiar de estado alcanza
+            client->password = malloc(strlen(arg1) + 1);
             memcpy(client->password, arg1, strlen(arg1) + 1);
             client->state = TRANSACTION;
             populate_array(client);
@@ -240,7 +240,7 @@ stm_state_t handleCapaAuth(char * arg1, char * arg2, struct selector_key* key) {
     char * message = "+OK Capability list follows\r\n"
                      "CAPA\r\n"
                      "QUIT\r\n"
-                    //  "STAT\r\n"
+                     "STAT\r\n"
                      "LIST\r\n"
                      "RETR\r\n"
                      "DELE\r\n"
