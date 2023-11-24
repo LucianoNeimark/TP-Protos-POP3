@@ -56,6 +56,8 @@ int populate_array(Client * client){
 
     if(get_path(path, client->name) == -1) {
         LogError("Unable to get path");
+        free(f);
+        free(path);
         return -1;
     }
 
@@ -63,6 +65,8 @@ int populate_array(Client * client){
 
     if(direc == NULL) {
         LogError("Unable to open directory %s", path);
+        free(f);
+        free(path);
         return -1;
     }
 
